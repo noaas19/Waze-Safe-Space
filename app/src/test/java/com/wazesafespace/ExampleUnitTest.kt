@@ -1,4 +1,4 @@
-package com.connectmap
+package com.wazesafespace
 
 import org.junit.Test
 

@@ -1,4 +1,4 @@
-package com.connectmap
+package com.wazesafespace
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
@@ -37,7 +37,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         // Optionally, move camera to a specific location (e.g., first shelter)
         shelters.firstOrNull()?.let { firstShelter ->
             val firstLocation = LatLng(firstShelter.lat, firstShelter.lon)
-            mGoogleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(firstLocation, 8f))
+            mGoogleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(firstLocation, 18f))
         }
     }
 }

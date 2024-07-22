@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "connect map"
+rootProject.name = "waze safe space"
 include(":app")
  

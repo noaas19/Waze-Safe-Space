@@ -1,4 +1,4 @@
-package com.connectmap
+package com.wazesafespace
 
 import android.content.Context
 import org.json.JSONArray
