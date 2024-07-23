@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "989442807472",
+    "firebase_url": "https://waze-safe-space-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "waze-safe-space",
+    "storage_bucket": "waze-safe-space.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:989442807472:android:ca79cd5426bd491e238d75",
+        "android_client_info": {
+          "package_name": "com.wazesafespace"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAGFDNG_YLmNpVk8Dr3ZihSgRnQ2r4hA_4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

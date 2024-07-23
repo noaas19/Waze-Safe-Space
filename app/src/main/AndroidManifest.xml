@@ -19,6 +19,9 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="@string/google_map_api_key"/>
+        <meta-data
+            android:name="com.google.firebase.database.DatabaseApp"
+            android:value="true"/>
         <activity
             android:name=".MainActivity"
             android:exported="true">
