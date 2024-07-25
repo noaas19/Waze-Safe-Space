@@ -1,6 +1,5 @@
 package com.wazesafespace
 
-import android.content.ContentValues.TAG
 import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
@@ -30,12 +29,15 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // Initialize textViewMessage
+        textViewMessage = findViewById(R.id.textViewMessage)
+
         // Initialize Firebase Database
         database = FirebaseDatabase.getInstance().reference
         val myRef = database.child("message")
 
         // Write a message to the database
-        myRef.setValue("Hello, Noa!")
+        myRef.setValue("Hello, ARI!")
 
         // Read from the database
         myRef.addValueEventListener(object : ValueEventListener {
@@ -52,7 +54,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 Log.w(TAG, "Failed to read value.", error.toException())
             }
         })
-//
+
         // Initialize Firebase Functions
         mFunctions = FirebaseFunctions.getInstance()
 
@@ -74,7 +76,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             .addOnSuccessListener { result ->
                 val response = result.data.toString()
                 Log.d(TAG, "Cloud Function Response: $response")
-                // Handle the response here (e.g., update the UI)
+                // Ensure textViewMessage is initialized
                 textViewMessage.text = response
             }
             .addOnFailureListener { e ->
