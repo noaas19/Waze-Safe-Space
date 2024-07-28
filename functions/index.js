@@ -1,51 +1,53 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * const {onCall} = require("firebase-functions/v2/https");
- * const {onDocumentWritten} = require("firebase-functions/v2/firestore");
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
 const functions = require('firebase-functions');
-const axios = require('axios');
-const cheerio = require('cheerio');
+const fetch = require('node-fetch');
 const admin = require('firebase-admin');
 
 admin.initializeApp();
 const db = admin.database();
 
-exports.scrapeAlerts = functions.pubsub.schedule('* * * * *').onRun(async (context) => {
+exports.extractAlerts = functions.pubsub.schedule('* * * * *').onRun(async (context) => {
     const url = 'https://api.tzevaadom.co.il/alerts-history';
-    const alerts = [];
+    let alerts = [];
 
     try {
-        // Fetch the page content
-        const response = await axios.get(url);
-        const $ = cheerio.load(response.data);
+        // Fetch the page content using fetch
+        const res = await fetch(url);
+        const data = await res.json();
 
-        // Extract alerts data
-        $('.alert_table').each((i, element) => {
-            const alertType = $(element).find('h4.alertTableCategory').text().trim();
+        // Get the current time
+        const currentTime = Date.now();
+        const oneMinuteAgo = currentTime - 60000; // דקה אחת אחורה
 
-            $(element).find('.alertDetails').each((j, detailElement) => {
-                const time = $(detailElement).find('h5.alertTableTime').text().trim();
-                const location = $(detailElement).text().replace(time, '').trim();
+        // Process the JSON data
+        alerts = data.reduce((a, b) => [...a, ...b.alerts], []);
 
-                alerts.push({
-                    type: alertType,
-                    time: time,
-                    location: location
-                });
+        // Filter alerts that happened in the last minute and include Be'er Sheva
+        alerts = alerts.filter(alert => {
+            const alertTime = alert.time * 1000;
+            const isRecent = alertTime >= oneMinuteAgo && alertTime <= currentTime;
+            const isBeerSheva = alert.cities.some(city => city.includes("באר שבע") || city.includes("Beer Sheva"));
+            return isRecent && isBeerSheva;
+        });
+
+        console.log('Filtered Alerts:', alerts);
+
+        // Save filtered alerts to Firebase Realtime Database if there are any
+        if (alerts.length > 0) {
+            const updates = {};
+            alerts.forEach(alert => {
+                const newKey = db.ref().child('alerts').push().key;
+                updates['/alerts/' + newKey] = {
+                    id: alert.id,
+                    time: new Date(alert.time * 1000).toISOString(), // המרת זמן מה-epoch ל-ISO
+                    cities: alert.cities.join(', '), // המרת רשימת ערים למחרוזת
+                    threat: alert.threat
+
+                };
             });
-        });
-
-        console.log('Alerts:', alerts);
-
-        // Save alerts to Firebase Realtime Database
-        await db.ref('alerts').set({
-            timestamp: new Date().toISOString(),
-            alerts: alerts
-        });
+            await db.ref().update(updates);
+        } else {
+            console.log('No new alerts for Be\'er Sheva in the last minute.');
+        }
 
         return null;
     } catch (error) {
@@ -53,13 +55,3 @@ exports.scrapeAlerts = functions.pubsub.schedule('* * * * *').onRun(async (conte
         throw new functions.https.HttpsError('internal', 'Unable to fetch data.');
     }
 });
-
-
-
-// Create and deploy your first functions
-// https://firebase.google.com/docs/functions/get-started
-
-// exports.helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
