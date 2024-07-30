@@ -1,53 +1,55 @@
+
+
 const functions = require('firebase-functions');
-const fetch = require('node-fetch');
+const axios = require('axios');
 const admin = require('firebase-admin');
 
 admin.initializeApp();
 const db = admin.database();
 
-exports.extractAlerts = functions.pubsub.schedule('* * * * *').onRun(async (context) => {
+
+exports.scrapeAlerts = functions.pubsub.schedule('* * * * *').onRun(async (context) => {
     const url = 'https://api.tzevaadom.co.il/alerts-history';
-    let alerts = [];
+    const alerts = [];
+    const now = Date.now();
+    const twentyFourHoursAgo = now - 24 * 60 * 60 * 1000;
 
     try {
-        // Fetch the page content using fetch
-        const res = await fetch(url);
-        const data = await res.json();
-
-        // Get the current time
-        const currentTime = Date.now();
-        const oneMinuteAgo = currentTime - 60000; // דקה אחת אחורה
-
+        // Fetch the page content
+        const response = await axios.get(url);
+        const data = response.data;
         // Process the JSON data
-        alerts = data.reduce((a, b) => [...a, ...b.alerts], []);
+        data.forEach(item => {
+            item.alerts.forEach(alert => {
+                const alertTime = alert.time * 1000;
 
-        // Filter alerts that happened in the last minute and include Be'er Sheva
-        alerts = alerts.filter(alert => {
-            const alertTime = alert.time * 1000;
-            const isRecent = alertTime >= oneMinuteAgo && alertTime <= currentTime;
-            const isBeerSheva = alert.cities.some(city => city.includes("באר שבע") || city.includes("Beer Sheva"));
-            return isRecent && isBeerSheva;
+                if (alertTime >= twentyFourHoursAgo && alert.cities.includes('קריית שמונה')) {
+                    alerts.push({
+                        id: item.id,
+                        time: new Date(alertTime).toISOString(),
+                        cities: alert.cities.join(', '),
+                        threat: alert.threat,
+                    });
+                }
+            });
         });
 
-        console.log('Filtered Alerts:', alerts);
+        // Add simulated alert for Be'er Sheva
+        const simulatedAlert = {
+            id: 'simulated-id',
+            time: new Date(now).toISOString(),
+            cities: 'באר שבע',
+            threat: 'rocket',
+        };
+        alerts.push(simulatedAlert);
 
-        // Save filtered alerts to Firebase Realtime Database if there are any
-        if (alerts.length > 0) {
-            const updates = {};
-            alerts.forEach(alert => {
-                const newKey = db.ref().child('alerts').push().key;
-                updates['/alerts/' + newKey] = {
-                    id: alert.id,
-                    time: new Date(alert.time * 1000).toISOString(), // המרת זמן מה-epoch ל-ISO
-                    cities: alert.cities.join(', '), // המרת רשימת ערים למחרוזת
-                    threat: alert.threat
+        console.log('Alerts:', alerts);
 
-                };
-            });
-            await db.ref().update(updates);
-        } else {
-            console.log('No new alerts for Be\'er Sheva in the last minute.');
-        }
+        // Save alerts to Firebase Realtime Database
+        await db.ref('alerts').set({
+            timestamp: new Date().toISOString(),
+            alerts: alerts
+        });
 
         return null;
     } catch (error) {
@@ -55,3 +57,46 @@ exports.extractAlerts = functions.pubsub.schedule('* * * * *').onRun(async (cont
         throw new functions.https.HttpsError('internal', 'Unable to fetch data.');
     }
 });
+
+//exports.scrapeAlerts = functions.pubsub.schedule('* * * * *').onRun(async (context) => {
+//    const url = 'https://api.tzevaadom.co.il/alerts-history';
+//    const alerts = [];
+//    const now = Date.now();
+//    const twentyFourHoursAgo = now - 24 * 60 * 60 * 1000;
+//
+//    try {
+//        // Fetch the page content
+//        const response = await axios.get(url);
+//        const data = response.data;
+//        // Process the JSON data
+//        data.forEach(item => {
+//            item.alerts.forEach(alert => {
+//                const alertTime = alert.time * 1000;
+//
+//
+//                if (alertTime >= twentyFourHoursAgo && alert.cities.includes('קריית שמונה')) {
+//                    alerts.push({
+//                        id: item.id,
+//                        time: new Date(alertTime).toISOString(),
+//                        cities: alert.cities.join(', '),
+//                        threat: alert.threat,
+//
+//                    });
+//                }
+//            });
+//        });
+//
+//        console.log('Alerts:', alerts);
+//
+//        // Save alerts to Firebase Realtime Database
+//        await db.ref('alerts').set({
+//            timestamp: new Date().toISOString(),
+//            alerts: alerts
+//        });
+//
+//        return null;
+//    } catch (error) {
+//        console.error('Error fetching data:', error);
+//        throw new functions.https.HttpsError('internal', 'Unable to fetch data.');
+//    }
+//});
