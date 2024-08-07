@@ -50,6 +50,7 @@ dependencies {
     implementation("com.google.firebase:firebase-appcheck:17.0.1")
     implementation("com.google.firebase:firebase-appcheck-playintegrity:17.0.1")
     implementation(libs.firebase.functions.ktx)
+    implementation(libs.play.services.location)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
