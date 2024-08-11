@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import com.android.volley.Request
@@ -44,6 +45,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var database: DatabaseReference
     private val TAG = "MainActivity"
     private lateinit var mFunctions: FirebaseFunctions
+    private lateinit var textViewTravelTime: TextView
 
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
     private var currentLocation: Location? = null
@@ -77,6 +79,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         shelters = ShelterUtils.loadSheltersFromAssets(this, "shelters.json")
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
         getLastLocation()
+        textViewTravelTime = findViewById(R.id.textViewTravelTime)
+
     }
 
     /**
@@ -178,14 +182,14 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
     override fun onMapReady(googleMap: GoogleMap) {
         mGoogleMap = googleMap
-        isMapReady = true // mark that the map is ready
+        isMapReady = true // סימון שהמפה מוכנה
         Log.d(TAG, "onMapReady is called")
         shelters.forEach { shelter ->
             val location = LatLng(shelter.lat, shelter.lon)
             mGoogleMap?.addMarker(MarkerOptions().position(location).title(shelter.name))
         }
 
-        moveCameraToCurrentLocation() // call function after map is loaded
+        moveCameraToCurrentLocation() // קריאה לפונקציה לאחר טעינת המפה
 
         if (currentLocation != null) {
             val userLocation = currentLocation!!
@@ -195,6 +199,19 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 val origin = LatLng(userLocation.latitude, userLocation.longitude)
                 val dest = LatLng(nearestShelter.lat, nearestShelter.lon)
                 Log.d(TAG, "Requesting directions from $origin to $dest")
+
+                // הוספת סמן במיקום המוצא בצבע צהוב
+                googleMap.addMarker(MarkerOptions()
+                    .position(origin)
+                    .title("My Location")
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW)))
+
+                // הוספת סמן ביעד (המקלט) בצבע כחול
+                googleMap.addMarker(MarkerOptions()
+                    .position(dest)
+                    .title(nearestShelter.name)
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)))
+
                 requestDirections(origin, dest) { response ->
                     drawRouteOnMap(response, googleMap)
                 }
@@ -207,6 +224,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             }
         }
     }
+
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
@@ -253,7 +271,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 shelter.lat,
                 shelter.lon
             )
-            Log.d(TAG, "Distance to shelter ${shelter.name}: $distance")
+            //Log.d(TAG, "Distance to shelter ${shelter.name}: $distance")
             if (distance < minDistance) {
                 minDistance = distance
                 nearestShelter = shelter
@@ -274,9 +292,11 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun getDirectionsUrl(origin: LatLng, dest: LatLng): String {
         val strOrigin = "origin=${origin.latitude},${origin.longitude}"
         val strDest = "destination=${dest.latitude},${dest.longitude}"
+        val mode = "mode=walking" // תוכל לשנות ל-driving, walking, bicycling או transit
         val key = "AIzaSyBbd4b2PmNe-yjdGRUCD9crOw5mqlivOqo"
-        return "https://maps.googleapis.com/maps/api/directions/json?$strOrigin&$strDest&key=$key"
+        return "https://maps.googleapis.com/maps/api/directions/json?$strOrigin&$strDest&$mode&key=$key"
     }
+
 
     /**
      * Sends a request to the Google Directions API.
@@ -317,18 +337,62 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         val legs = routes.getJSONObject(0).getJSONArray("legs")
         val steps = legs.getJSONObject(0).getJSONArray("steps")
 
-        for (i in 0 until steps.length()) {
-            val step = steps.getJSONObject(i)
-            val polyline = step.getJSONObject("polyline")
-            val pointsArray = polyline.getString("points")
-            points.addAll(PolyUtil.decode(pointsArray))
+        // Extract the travel time from the JSON response
+        val travelTimeText = legs.getJSONObject(0).getJSONObject("duration").getString("text")
+        val travelTimeInSeconds = parseDurationToSeconds(travelTimeText)
+
+        // בדיקה אם זמן המסלול גדול מדקה
+        if (travelTimeInSeconds > 59) {
+            // הצגת הודעה למשתמש במידה ואין מסלול בזמן הנדרש
+            AlertDialog.Builder(this@MainActivity)
+                .setTitle("אין מסלול בטוח בזמן ההתמגנות")
+                .setMessage("מומלץ להיכנס לבניין סמוך. אם אין בניין בסביבה, שכב על הרצפה עם ידיים על הראש.")
+                .setPositiveButton("אישור") { dialog, _ ->
+                    dialog.dismiss()
+                }
+                .show()
+        } else {
+            // Update the TextView with the travel time
+            textViewTravelTime.text = "Estimated Travel Time: $travelTimeText"
+
+            // Drawing the route on the map
+            for (i in 0 until steps.length()) {
+                val step = steps.getJSONObject(i)
+                val polyline = step.getJSONObject("polyline")
+                val pointsArray = polyline.getString("points")
+                points.addAll(PolyUtil.decode(pointsArray))
+            }
+
+            polylineOptions.addAll(points)
+            polylineOptions.width(10f)
+            polylineOptions.color(Color.BLUE)
+
+            googleMap.addPolyline(polylineOptions)
+            Log.d(TAG, "Route drawn on map")
+        }
+    }
+
+    // פונקציה להמרת זמן טקסט לשניות
+    private fun parseDurationToSeconds(duration: String): Int {
+        var totalSeconds = 0
+
+        if (duration.contains("hour")) {
+            val hours = duration.substringBefore(" hour").toInt()
+            totalSeconds += hours * 3600
         }
 
-        polylineOptions.addAll(points)
-        polylineOptions.width(10f)
-        polylineOptions.color(Color.BLUE)
+        if (duration.contains("min")) {
+            val minutes = duration.substringBefore(" min").toInt()
+            totalSeconds += minutes * 60
+        }
 
-        googleMap.addPolyline(polylineOptions)
-        Log.d(TAG, "Route drawn on map")
+        if (duration.contains("sec")) {
+            val seconds = duration.substringBefore(" sec").toInt()
+            totalSeconds += seconds
+        }
+
+        return totalSeconds
     }
+
+
 }
