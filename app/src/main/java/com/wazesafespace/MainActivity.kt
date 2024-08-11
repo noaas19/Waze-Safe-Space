@@ -3,6 +3,7 @@ package com.wazesafespace
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.location.Geocoder
 import android.location.Location
 import android.os.Bundle
 import android.util.Log
@@ -35,8 +36,10 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.functions.FirebaseFunctions
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.maps.android.PolyUtil
 import org.json.JSONObject
+import java.util.Locale
 
 class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private var mGoogleMap: GoogleMap? = null
@@ -46,7 +49,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private val TAG = "MainActivity"
     private lateinit var mFunctions: FirebaseFunctions
     private lateinit var textViewTravelTime: TextView
-
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
     private var currentLocation: Location? = null
     private val FINE_PERMISSION_CODE = 1
@@ -81,7 +83,51 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         getLastLocation()
         textViewTravelTime = findViewById(R.id.textViewTravelTime)
 
+
+        // Reference to the alerts node
+        val alertsRef = database.child("alerts")
+
+        // Listen for real-time updates
+        alertsRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val alertData = snapshot.value as? Map<String, Any>
+                val alertsList = alertData?.get("alerts") as? List<Map<String, Any>>
+
+                if (alertsList != null) {
+                    val beerShevaAlert = alertsList.any { alert ->
+                        val cities = alert["cities"] as? String
+                        cities?.contains("באר שבע") == true
+                    }
+
+                    if (beerShevaAlert) {
+                        Log.d(TAG, "Alert for Beer Sheva found")
+
+                        // בדיקת מיקום המשתמש
+                        if (isUserInBeerSheva(currentLocation)) {
+                            Log.d(TAG, "User is in Beer Sheva, showing route,$currentLocation")
+                            val nearestShelter = findNearestShelter(currentLocation!!, shelters)
+                            if (nearestShelter != null) {
+                                val origin = LatLng(currentLocation!!.latitude, currentLocation!!.longitude)
+                                val dest = LatLng(nearestShelter.lat, nearestShelter.lon)
+                                requestDirections(origin, dest) { response ->
+                                    drawRouteOnMap(response, mGoogleMap!!)
+                                }
+                            }
+                        } else {
+                            Log.d(TAG, "User is not in Beer Sheva, no route will be shown.")
+                        }
+                    } else {
+                        Log.d(TAG, "No alert for Beer Sheva found, no route will be shown.")
+                    }
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e(TAG, "Error fetching data: ", error.toException())
+            }
+        })
     }
+
 
     /**
      * Calls the Firebase Cloud Function and updates the textViewMessage with the response.
@@ -342,7 +388,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         val travelTimeInSeconds = parseDurationToSeconds(travelTimeText)
 
         // בדיקה אם זמן המסלול גדול מדקה
-        if (travelTimeInSeconds > 59) {
+        if (travelTimeInSeconds > 60) {
+            // Update the TextView with the travel time
+            textViewTravelTime.text = "Estimated Travel Time: $travelTimeText"
             // הצגת הודעה למשתמש במידה ואין מסלול בזמן הנדרש
             AlertDialog.Builder(this@MainActivity)
                 .setTitle("אין מסלול בטוח בזמן ההתמגנות")
@@ -395,4 +443,20 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
 
+}
+
+
+private fun isUserInBeerSheva(location: Location?): Boolean {
+    if (location == null) return false
+    val lat = location.latitude
+    val lon = location.longitude
+
+    // הגדרת תחום קואורדינטות של באר שבע
+    val BEER_SHEVA_LAT_MIN = 31.1786
+    val BEER_SHEVA_LAT_MAX = 31.3004
+    val BEER_SHEVA_LON_MIN = 34.7396
+    val BEER_SHEVA_LON_MAX = 34.8416
+
+    return lat >= BEER_SHEVA_LAT_MIN && lat <= BEER_SHEVA_LAT_MAX &&
+            lon >= BEER_SHEVA_LON_MIN && lon <= BEER_SHEVA_LON_MAX
 }
