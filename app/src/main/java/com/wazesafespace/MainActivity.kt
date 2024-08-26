@@ -11,6 +11,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.constraintlayout.motion.widget.Debug.getLocation
 import androidx.core.app.ActivityCompat
 import com.android.volley.Request
 import com.android.volley.Response
@@ -38,6 +39,7 @@ import com.google.firebase.database.ValueEventListener
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.maps.android.PolyUtil
+
 import org.json.JSONObject
 import java.util.Locale
 
@@ -54,9 +56,15 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private val FINE_PERMISSION_CODE = 1
     private var isMapReady = false
 
+    private var home = 0
+    private var findShalter = -1
+    private var addShalter = -1
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContentView(R.layout.activity_main)
+
 
         textViewMessage = findViewById(R.id.textViewMessage)
         database = FirebaseDatabase.getInstance().reference
@@ -80,14 +88,23 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
         shelters = ShelterUtils.loadSheltersFromAssets(this, "shelters.json")
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
-        getLastLocation()
+        getLocation()
         textViewTravelTime = findViewById(R.id.textViewTravelTime)
 
+        val mapFragment = supportFragmentManager
+            .findFragmentById(R.id.mapFragment) as SupportMapFragment
+        mapFragment.getMapAsync(this) // initialize map after getting location
 
+
+        if (intent.getBooleanExtra("callFindShelterManually", false)) {
+            FindShelterManually()
+        }
         // Reference to the alerts node
         val alertsRef = database.child("alerts")
 
         // Listen for real-time updates
+
+
         alertsRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val alertData = snapshot.value as? Map<String, Any>
@@ -104,15 +121,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
                         // בדיקת מיקום המשתמש
                         if (isUserInBeerSheva(currentLocation)) {
-                            Log.d(TAG, "User is in Beer Sheva, showing route,$currentLocation")
-                            val nearestShelter = findNearestShelter(currentLocation!!, shelters)
-                            if (nearestShelter != null) {
-                                val origin = LatLng(currentLocation!!.latitude, currentLocation!!.longitude)
-                                val dest = LatLng(nearestShelter.lat, nearestShelter.lon)
-                                requestDirections(origin, dest) { response ->
-                                    drawRouteOnMap(response, mGoogleMap!!)
-                                }
-                            }
+
+                            FindShelterHandler(60)
                         } else {
                             Log.d(TAG, "User is not in Beer Sheva, no route will be shown.")
                         }
@@ -126,6 +136,45 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 Log.e(TAG, "Error fetching data: ", error.toException())
             }
         })
+    }
+
+    private fun FindShelterManually() {
+        home = -1
+        if (isUserInBeerSheva(currentLocation)) {
+            FindShelterHandler(-1)
+        } else {
+//להוסיף התייחסות לכך שההודעה תוקפץ רק לאחר שזוהה מיקום
+            Log.d(TAG, "User is not in Beer Sheva, no route will be shown.")
+            Toast.makeText(this, "בשלב זה האפליקציה תומכת רק בעיר באר שבע", Toast.LENGTH_LONG)
+                .show()
+        }
+
+    }
+
+    private fun FindShelterHandler(limitedShieldingTime: Int) {
+
+        Log.d(TAG, "User is in Beer Sheva, showing route,$currentLocation")
+        val nearestShelter = findNearestShelter(currentLocation!!, shelters)
+
+        if (nearestShelter != null) {
+            val origin = LatLng(currentLocation!!.latitude, currentLocation!!.longitude)
+            val dest = LatLng(nearestShelter.lat, nearestShelter.lon)
+            requestDirections(origin, dest) { response ->
+                val travelTimeInSeconds = drawRouteOnMap(response, mGoogleMap!!)
+                if (limitedShieldingTime > 0) {
+                    if (travelTimeInSeconds > limitedShieldingTime) {
+                        // הצגת הודעה למשתמש במידה ואין מסלול בזמן הנדרש
+                        AlertDialog.Builder(this@MainActivity)
+                            .setTitle("אין מסלול בטוח בזמן ההתמגנות")
+                            .setMessage("מומלץ להיכנס לבניין סמוך. אם אין בניין בסביבה, שכב על הרצפה עם ידיים על הראש.")
+                            .setPositiveButton("אישור") { dialog, _ ->
+                                dialog.dismiss()
+                            }
+                            .show()
+                    }
+                }
+            }
+        }
     }
 
 
@@ -147,11 +196,11 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     /**
-     * Gets the last known location of the device.
+     * Gets the location of the device.
      * If location permissions are not granted, requests them.
      */
-    private fun getLastLocation() {
-        Log.d(TAG, "getLastLocation called")
+    private fun getLocation() {
+        Log.d(TAG, "getLocation called")
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
@@ -196,10 +245,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                     Log.d(TAG, "latitude & longitude is... $lat $lon")
                     Log.d(TAG, "location is... $location")
                     currentLocation = location // update currentLocation
-                    val mapFragment = supportFragmentManager
-                        .findFragmentById(R.id.mapFragment) as SupportMapFragment
-                    mapFragment.getMapAsync(this) // initialize map after getting location
-
                     if (isMapReady) {
                         moveCameraToCurrentLocation()
                     }
@@ -217,10 +262,11 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         currentLocation?.let {
             val currentLatLng = LatLng(it.latitude, it.longitude)
             Log.d(TAG, "Moving camera to current location: $currentLatLng")
-            mGoogleMap?.addMarker(MarkerOptions()
-                .position(currentLatLng)
-                .title("My Location")
-                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW)) // Mark in yellow
+            mGoogleMap?.addMarker(
+                MarkerOptions()
+                    .position(currentLatLng)
+                    .title("My Location")
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW)) // Mark in yellow
             )
             mGoogleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 18f))
         }
@@ -247,16 +293,20 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 Log.d(TAG, "Requesting directions from $origin to $dest")
 
                 // הוספת סמן במיקום המוצא בצבע צהוב
-                googleMap.addMarker(MarkerOptions()
-                    .position(origin)
-                    .title("My Location")
-                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW)))
+                googleMap.addMarker(
+                    MarkerOptions()
+                        .position(origin)
+                        .title("My Location")
+                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW))
+                )
 
                 // הוספת סמן ביעד (המקלט) בצבע כחול
-                googleMap.addMarker(MarkerOptions()
-                    .position(dest)
-                    .title(nearestShelter.name)
-                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)))
+                googleMap.addMarker(
+                    MarkerOptions()
+                        .position(dest)
+                        .title(nearestShelter.name)
+                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
+                )
 
                 requestDirections(origin, dest) { response ->
                     drawRouteOnMap(response, googleMap)
@@ -272,13 +322,21 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == FINE_PERMISSION_CODE) {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                getLastLocation()
+                getLocation()
             } else {
-                Toast.makeText(this, "Location permission is denied, please allow the permission", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this,
+                    "Location permission is denied, please allow the permission",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
     }
@@ -292,7 +350,12 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
      * @param endLng Ending longitude
      * @return Distance in meters
      */
-    private fun calculateDistance(startLat: Double, startLng: Double, endLat: Double, endLng: Double): Float {
+    private fun calculateDistance(
+        startLat: Double,
+        startLng: Double,
+        endLat: Double,
+        endLng: Double
+    ): Float {
         val results = FloatArray(1)
         Location.distanceBetween(startLat, startLng, endLat, endLng, results)
         return results[0]
@@ -373,7 +436,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
      * @param response The response from the Directions API
      * @param googleMap The GoogleMap object to draw the route on
      */
-    private fun drawRouteOnMap(response: String, googleMap: GoogleMap) {
+    private fun drawRouteOnMap(response: String, googleMap: GoogleMap): Int {
         Log.d(TAG, "Drawing route on map")
         val jsonObject = JSONObject(response)
         val routes = jsonObject.getJSONArray("routes")
@@ -387,38 +450,27 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         val travelTimeText = legs.getJSONObject(0).getJSONObject("duration").getString("text")
         val travelTimeInSeconds = parseDurationToSeconds(travelTimeText)
 
-        // בדיקה אם זמן המסלול גדול מדקה
-        if (travelTimeInSeconds > 60) {
-            // Update the TextView with the travel time
-            textViewTravelTime.text = "Estimated Travel Time: $travelTimeText"
-            // הצגת הודעה למשתמש במידה ואין מסלול בזמן הנדרש
-            AlertDialog.Builder(this@MainActivity)
-                .setTitle("אין מסלול בטוח בזמן ההתמגנות")
-                .setMessage("מומלץ להיכנס לבניין סמוך. אם אין בניין בסביבה, שכב על הרצפה עם ידיים על הראש.")
-                .setPositiveButton("אישור") { dialog, _ ->
-                    dialog.dismiss()
-                }
-                .show()
-        } else {
-            // Update the TextView with the travel time
-            textViewTravelTime.text = "Estimated Travel Time: $travelTimeText"
 
-            // Drawing the route on the map
-            for (i in 0 until steps.length()) {
-                val step = steps.getJSONObject(i)
-                val polyline = step.getJSONObject("polyline")
-                val pointsArray = polyline.getString("points")
-                points.addAll(PolyUtil.decode(pointsArray))
-            }
+        // Update the TextView with the travel time
+        textViewTravelTime.text = "Estimated Travel Time: $travelTimeText"
 
-            polylineOptions.addAll(points)
-            polylineOptions.width(10f)
-            polylineOptions.color(Color.BLUE)
-
-            googleMap.addPolyline(polylineOptions)
-            Log.d(TAG, "Route drawn on map")
+        // Drawing the route on the map
+        for (i in 0 until steps.length()) {
+            val step = steps.getJSONObject(i)
+            val polyline = step.getJSONObject("polyline")
+            val pointsArray = polyline.getString("points")
+            points.addAll(PolyUtil.decode(pointsArray))
         }
+
+        polylineOptions.addAll(points)
+        polylineOptions.width(10f)
+        polylineOptions.color(Color.BLUE)
+
+        googleMap.addPolyline(polylineOptions)
+        Log.d(TAG, "Route drawn on map")
+        return travelTimeInSeconds
     }
+
 
     // פונקציה להמרת זמן טקסט לשניות
     private fun parseDurationToSeconds(duration: String): Int {
@@ -452,11 +504,10 @@ private fun isUserInBeerSheva(location: Location?): Boolean {
     val lon = location.longitude
 
     // הגדרת תחום קואורדינטות של באר שבע
-    val BEER_SHEVA_LAT_MIN = 31.1786
-    val BEER_SHEVA_LAT_MAX = 31.3004
-    val BEER_SHEVA_LON_MIN = 34.7396
-    val BEER_SHEVA_LON_MAX = 34.8416
-
+    val BEER_SHEVA_LAT_MIN = 31.174294
+    val BEER_SHEVA_LAT_MAX = 31.332650
+    val BEER_SHEVA_LON_MIN = 34.706400
+    val BEER_SHEVA_LON_MAX = 34.869200
     return lat >= BEER_SHEVA_LAT_MIN && lat <= BEER_SHEVA_LAT_MAX &&
             lon >= BEER_SHEVA_LON_MIN && lon <= BEER_SHEVA_LON_MAX
 }
