@@ -1,10 +1,12 @@
 package com.wazesafespace
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.location.Geocoder
 import android.location.Location
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
@@ -13,6 +15,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.motion.widget.Debug.getLocation
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.StringRequest
@@ -54,6 +57,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
     private var currentLocation: Location? = null
     private val FINE_PERMISSION_CODE = 1
+    private val NOTIFICATION_PERMISSION_CODE = 1001
+
+
     private var isMapReady = false
 
     private var home = 0
@@ -65,6 +71,10 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
         setContentView(R.layout.activity_main)
 
+        // קריאה לפונקציה שמבקשת רשות לריצה ברקע
+        showBackgroundRunDialog()
+        // קריאה לבקשת הרשאת התראות
+        requestNotificationPermission()
 
         textViewMessage = findViewById(R.id.textViewMessage)
         database = FirebaseDatabase.getInstance().reference
@@ -175,6 +185,96 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 }
             }
         }
+    }
+
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {  // API 33
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), NOTIFICATION_PERMISSION_CODE)
+            }
+        }
+    }
+
+
+    private fun startForegroundService() {
+        startService(Intent(this, MyForegroundService::class.java))
+        Log.d(TAG,"startForegroundService called")
+    }
+
+//    private fun checkLocationPermission(): Boolean {
+//        return ActivityCompat.checkSelfPermission(
+//            this,
+//            Manifest.permission.ACCESS_FINE_LOCATION
+//        ) == PackageManager.PERMISSION_GRANTED ||
+//                ActivityCompat.checkSelfPermission(
+//                    this,
+//                    Manifest.permission.ACCESS_COARSE_LOCATION
+//                ) == PackageManager.PERMISSION_GRANTED
+//    }
+//
+//    private fun showRationaleForLocationPermission() {
+//        AlertDialog.Builder(this)
+//            .setTitle("הרשאת מיקום נדרשת")
+//            .setMessage("האפליקציה זקוקה להרשאה זו כדי לספק לך הכוונה למקלט בזמן אמת ולשמור על ביטחונך.")
+//            .setPositiveButton("אישור") { _, _ ->
+//                requestLocationPermission()
+//            }
+//            .setNegativeButton("ביטול", null)
+//            .show()
+//    }
+//
+//    private fun requestLocationPermission() {
+//        ActivityCompat.requestPermissions(
+//            this,
+//            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
+//            LOCATION_PERMISSION_CODE
+//        )
+//    }
+//
+//    override fun onRequestPermissionsResult(
+//        requestCode: Int,
+//        permissions: Array<out String>,
+//        grantResults: IntArray
+//    ) {
+//        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+//
+//        when (requestCode) {
+//            FINE_PERMISSION_CODE -> {
+//                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+//                    getLocation()
+//                } else {
+//                    Toast.makeText(
+//                        this,
+//                        "Location permission is denied, please allow the permission",
+//                        Toast.LENGTH_SHORT
+//                    ).show()
+//                }
+//            }
+//
+//            LOCATION_PERMISSION_CODE -> {
+//                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+//                    // ההרשאה ניתנה, אפשר להפעיל את השירות
+//                    startForegroundService()
+//                } else {
+//                    Toast.makeText(this, "הרשאת מיקום נדרשת לפעולה תקינה של האפליקציה.", Toast.LENGTH_LONG).show()
+//                }
+//            }
+//        }
+//    }
+
+    private fun showBackgroundRunDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("הפעלת ריצה ברקע")
+            .setMessage("האפליקציה תרוץ ברקע כדי להמשיך לעקוב אחרי המיקום שלך ולוודא שאתה מקבל את כל ההתרעות בזמן אמת.")
+            .setPositiveButton("אישור") { _, _ ->
+                // הפעלת השירות לאחר שהמשתמש נתן אישור
+                startForegroundService()
+            }
+            .setNegativeButton("ביטול") { dialog, _ ->
+                dialog.dismiss()
+                // כאן אפשר להפסיק כל פעולה נוספת אם המשתמש סירב
+            }
+            .show()
     }
 
 
@@ -321,25 +421,60 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         }
     }
 
-
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == FINE_PERMISSION_CODE) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                getLocation()
-            } else {
-                Toast.makeText(
-                    this,
-                    "Location permission is denied, please allow the permission",
-                    Toast.LENGTH_SHORT
-                ).show()
+
+        when (requestCode) {
+            FINE_PERMISSION_CODE -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    getLocation()
+                } else {
+                    Toast.makeText(
+                        this,
+                        "Location permission is denied, please allow the permission",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+            NOTIFICATION_PERMISSION_CODE -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // הרשאת התראות ניתנה
+                    Log.d("NotificationPermission", "Notification permission granted.")
+                } else {
+                    // הרשאת התראות לא ניתנה
+                    Toast.makeText(
+                        this,
+                        "Notification permission is denied.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
             }
         }
     }
+
+
+//    override fun onRequestPermissionsResult(
+//        requestCode: Int,
+//        permissions: Array<out String>,
+//        grantResults: IntArray
+//    ) {
+//        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+//        if (requestCode == FINE_PERMISSION_CODE) {
+//            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+//                getLocation()
+//            } else {
+//                Toast.makeText(
+//                    this,
+//                    "Location permission is denied, please allow the permission",
+//                    Toast.LENGTH_SHORT
+//                ).show()
+//            }
+//        }
+//    }
 
     /**
      * Calculates the distance between two locations.
@@ -503,7 +638,7 @@ private fun isUserInBeerSheva(location: Location?): Boolean {
     val lat = location.latitude
     val lon = location.longitude
 
-    // הגדרת תחום קואורדינטות של באר שבע
+    // הגדרת תחום קואורדינטות של באר שבע מויקיפדיה
     val BEER_SHEVA_LAT_MIN = 31.174294
     val BEER_SHEVA_LAT_MAX = 31.332650
     val BEER_SHEVA_LON_MIN = 34.706400

@@ -1,7 +1,6 @@
 package com.wazesafespace
 
 import android.os.Bundle
-import android.view.LayoutInflater
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.wazesafespace.databinding.ActivityMain2Binding
@@ -15,9 +14,8 @@ class MainActivity2 : AppCompatActivity() {
         binding = ActivityMain2Binding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        binding.homeBtn.setOnClickListener {
-            replaceFragment(Home())
-        }
+        // טוענים את הפרגמנט הראשוני עם הלוגו והכפתורים
+        replaceFragment(Home())
     }
 
     private fun replaceFragment(fragment: Fragment) {
@@ -26,5 +24,4 @@ class MainActivity2 : AppCompatActivity() {
         fragmentTransaction.replace(R.id.fragmentContainer, fragment)
         fragmentTransaction.commit()
     }
-
 }
