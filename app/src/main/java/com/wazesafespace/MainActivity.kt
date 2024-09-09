@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
-import android.location.Geocoder
 import android.location.Location
 import android.os.Build
 import android.os.Bundle
@@ -13,9 +12,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.constraintlayout.motion.widget.Debug.getLocation
 import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.StringRequest
@@ -42,6 +39,8 @@ import com.google.firebase.database.ValueEventListener
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.maps.android.PolyUtil
+import com.wazesafespace.MyForegroundService
+
 
 import org.json.JSONObject
 import java.util.Locale
@@ -49,7 +48,7 @@ import java.util.Locale
 class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private var mGoogleMap: GoogleMap? = null
     private lateinit var shelters: List<Shelter>
-    private lateinit var textViewMessage: TextView
+    //private lateinit var textViewMessage: TextView
     private lateinit var database: DatabaseReference
     private val TAG = "MainActivity"
     private lateinit var mFunctions: FirebaseFunctions
@@ -70,31 +69,35 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         super.onCreate(savedInstanceState)
 
         setContentView(R.layout.activity_main)
+        val sharedPreferences = getSharedPreferences("app_preferences", MODE_PRIVATE)
+        val isBackgroundApproved = sharedPreferences.getBoolean("isBackgroundApproved", false)
 
-        // קריאה לפונקציה שמבקשת רשות לריצה ברקע
-        showBackgroundRunDialog()
+
+        // בדיקת האם המשתמש אישר כבר את הריצה ברקע
+        if (isBackgroundApproved) {
+            // נוודא שהשירות לא פועל ואז נפעיל אותו
+            if (!MyForegroundService.isServiceRunning) {
+                startForegroundService()
+                Log.d(TAG, "Starting Foreground Service")
+            } else {
+                Log.d(TAG, "Foreground service is already running")
+            }
+        } else {
+            // המשתמש לא אישר ריצה ברקע, מבקשים אישור
+            showBackgroundRunDialog()
+        }
+
+
         // קריאה לבקשת הרשאת התראות
         requestNotificationPermission()
 
-        textViewMessage = findViewById(R.id.textViewMessage)
-        database = FirebaseDatabase.getInstance().reference
-        val myRef = database.child("message")
-        myRef.setValue("Hello, NOMIMA!")
-
-        myRef.addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(dataSnapshot: DataSnapshot) {
-                val value = dataSnapshot.getValue(String::class.java)
-                Log.d(TAG, "Value is: $value")
-                textViewMessage.text = value
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                Log.w(TAG, "Failed to read value.", error.toException())
-            }
-        })
+        // בדיקת הכוונה שהתקבלה
+        val action = intent.getStringExtra("action")
+        if (action == "guideUserByLocation") {
+            guideUserByLocation() // קריאה לפונקציה שמנחה את המשתמש
+        }
 
         mFunctions = FirebaseFunctions.getInstance()
-        callCloudFunction()
 
         shelters = ShelterUtils.loadSheltersFromAssets(this, "shelters.json")
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
@@ -109,43 +112,19 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         if (intent.getBooleanExtra("callFindShelterManually", false)) {
             FindShelterManually()
         }
-        // Reference to the alerts node
-        val alertsRef = database.child("alerts")
 
-        // Listen for real-time updates
+        //להכניס חלק זה תחת פונקציה שניצור,אם המשתמש בבאר שבע,תוצג מפה ומסלול,אחרת,תוצג הודעה שההתרעה רלוונטית רק למי שבבאר שבע
 
 
-        alertsRef.addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val alertData = snapshot.value as? Map<String, Any>
-                val alertsList = alertData?.get("alerts") as? List<Map<String, Any>>
+    }
 
-                if (alertsList != null) {
-                    val beerShevaAlert = alertsList.any { alert ->
-                        val cities = alert["cities"] as? String
-                        cities?.contains("באר שבע") == true
-                    }
-
-                    if (beerShevaAlert) {
-                        Log.d(TAG, "Alert for Beer Sheva found")
-
-                        // בדיקת מיקום המשתמש
-                        if (isUserInBeerSheva(currentLocation)) {
-
-                            FindShelterHandler(60)
-                        } else {
-                            Log.d(TAG, "User is not in Beer Sheva, no route will be shown.")
-                        }
-                    } else {
-                        Log.d(TAG, "No alert for Beer Sheva found, no route will be shown.")
-                    }
-                }
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                Log.e(TAG, "Error fetching data: ", error.toException())
-            }
-        })
+    private fun guideUserByLocation(){
+        // בדיקת מיקום המשתמש
+        if (isUserInBeerSheva(currentLocation)) {
+            FindShelterHandler(60)
+        } else {
+            Log.d(TAG, "User is not in Beer-Sheva, no route will be shown.")
+        }
     }
 
     private fun FindShelterManually() {
@@ -153,12 +132,11 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         if (isUserInBeerSheva(currentLocation)) {
             FindShelterHandler(-1)
         } else {
-//להוסיף התייחסות לכך שההודעה תוקפץ רק לאחר שזוהה מיקום
+    //להוסיף התייחסות לכך שההודעה תוקפץ רק לאחר שזוהה מיקום
             Log.d(TAG, "User is not in Beer Sheva, no route will be shown.")
             Toast.makeText(this, "בשלב זה האפליקציה תומכת רק בעיר באר שבע", Toast.LENGTH_LONG)
                 .show()
         }
-
     }
 
     private fun FindShelterHandler(limitedShieldingTime: Int) {
@@ -197,70 +175,15 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
 
     private fun startForegroundService() {
-        startService(Intent(this, MyForegroundService::class.java))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(Intent(this, MyForegroundService::class.java))
+        } else {
+            startService(Intent(this, MyForegroundService::class.java))
+        }
+
         Log.d(TAG,"startForegroundService called")
     }
 
-//    private fun checkLocationPermission(): Boolean {
-//        return ActivityCompat.checkSelfPermission(
-//            this,
-//            Manifest.permission.ACCESS_FINE_LOCATION
-//        ) == PackageManager.PERMISSION_GRANTED ||
-//                ActivityCompat.checkSelfPermission(
-//                    this,
-//                    Manifest.permission.ACCESS_COARSE_LOCATION
-//                ) == PackageManager.PERMISSION_GRANTED
-//    }
-//
-//    private fun showRationaleForLocationPermission() {
-//        AlertDialog.Builder(this)
-//            .setTitle("הרשאת מיקום נדרשת")
-//            .setMessage("האפליקציה זקוקה להרשאה זו כדי לספק לך הכוונה למקלט בזמן אמת ולשמור על ביטחונך.")
-//            .setPositiveButton("אישור") { _, _ ->
-//                requestLocationPermission()
-//            }
-//            .setNegativeButton("ביטול", null)
-//            .show()
-//    }
-//
-//    private fun requestLocationPermission() {
-//        ActivityCompat.requestPermissions(
-//            this,
-//            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
-//            LOCATION_PERMISSION_CODE
-//        )
-//    }
-//
-//    override fun onRequestPermissionsResult(
-//        requestCode: Int,
-//        permissions: Array<out String>,
-//        grantResults: IntArray
-//    ) {
-//        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-//
-//        when (requestCode) {
-//            FINE_PERMISSION_CODE -> {
-//                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-//                    getLocation()
-//                } else {
-//                    Toast.makeText(
-//                        this,
-//                        "Location permission is denied, please allow the permission",
-//                        Toast.LENGTH_SHORT
-//                    ).show()
-//                }
-//            }
-//
-//            LOCATION_PERMISSION_CODE -> {
-//                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-//                    // ההרשאה ניתנה, אפשר להפעיל את השירות
-//                    startForegroundService()
-//                } else {
-//                    Toast.makeText(this, "הרשאת מיקום נדרשת לפעולה תקינה של האפליקציה.", Toast.LENGTH_LONG).show()
-//                }
-//            }
-//        }
-//    }
 
     private fun showBackgroundRunDialog() {
         AlertDialog.Builder(this)
@@ -269,30 +192,19 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             .setPositiveButton("אישור") { _, _ ->
                 // הפעלת השירות לאחר שהמשתמש נתן אישור
                 startForegroundService()
+
+                // שמירת האישור ב-SharedPreferences כדי שלא נבקש שוב
+                val sharedPreferences = getSharedPreferences("app_preferences", MODE_PRIVATE)
+                with(sharedPreferences.edit()) {
+                    putBoolean("isBackgroundApproved", true)
+                    apply()
+                }
             }
             .setNegativeButton("ביטול") { dialog, _ ->
                 dialog.dismiss()
                 // כאן אפשר להפסיק כל פעולה נוספת אם המשתמש סירב
             }
             .show()
-    }
-
-
-    /**
-     * Calls the Firebase Cloud Function and updates the textViewMessage with the response.
-     */
-    private fun callCloudFunction() {
-        mFunctions
-            .getHttpsCallable("helloWorld")
-            .call()
-            .addOnSuccessListener { result ->
-                val response = result.data.toString()
-                Log.d(TAG, "Cloud Function Response: $response")
-                textViewMessage.text = response
-            }
-            .addOnFailureListener { e ->
-                Log.e(TAG, "Error calling Cloud Function", e)
-            }
     }
 
     /**
@@ -631,7 +543,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
 
 }
-
 
 private fun isUserInBeerSheva(location: Location?): Boolean {
     if (location == null) return false

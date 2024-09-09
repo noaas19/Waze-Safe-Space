@@ -6,9 +6,7 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <ViewSwitcher
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+    <!-- Map fragment -->
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/mapFragment"
@@ -17,22 +15,10 @@
         android:layout_height="match_parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <!-- TextView to display data from Firebase -->
-    <TextView
-        android:id="@+id/textViewMessage"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:background="@android:color/white"
-        android:padding="8dp"
-        android:text="Loading..."
-        android:textSize="20sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.0" />
 
     <!-- TextView to display the estimated travel time -->
     <TextView
@@ -45,19 +31,11 @@
         android:text="Estimated Travel Time will be shown here"
         android:textColor="@android:color/black"
         android:textSize="16sp"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/textViewMessage" />
+        app:layout_constraintTop_toTopOf="@+id/mapFragment"
+        app:layout_constraintVertical_bias="0.227" />
 
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        tools:layout_editor_absoluteX="12dp"
-        tools:layout_editor_absoluteY="11dp">
-
-        <RelativeLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
-    </ScrollView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

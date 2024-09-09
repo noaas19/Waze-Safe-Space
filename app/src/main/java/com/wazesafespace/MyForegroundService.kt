@@ -7,13 +7,73 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.ContentValues.TAG
+import android.content.Context
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 
 class MyForegroundService : Service() {
 
+    private lateinit var database: DatabaseReference
+
+
+    companion object {
+        var isServiceRunning = false
+    }
+//    //בדיקה
+//    fun run() {
+//        while (true) {
+//            Log.e("Service", "Service is running...")
+//            try {
+//                Thread.sleep(2000)
+//            } catch (e: InterruptedException) {
+//                e.printStackTrace()
+//            }
+//        }
+//    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+
+        isServiceRunning = true
+
+        database = FirebaseDatabase.getInstance().reference
+        // Reference to the alerts node
+        val alertsRef = database.child("alerts")
+
+        // Listen for real-time updates
+        alertsRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val alertData = snapshot.value as? Map<String, Any>
+                val alertsList = alertData?.get("alerts") as? List<Map<String, Any>>
+
+                if (alertsList != null) {
+                    val beerShevaAlert = alertsList.any { alert ->
+                        val cities = alert["cities"] as? String
+                        cities?.contains("באר שבע") == true
+                    }
+
+                    if (beerShevaAlert) {
+                        Log.d(TAG, "Alert for Beer Sheva found")
+                        //כאן אמורים לשלוח התראות וכשמשתמש ילחץ על התראה -צריך להפעיל פונקציה FindShelterHandler
+                        sendBeerShevaAlertNotification()
+
+                    } else {
+                        Log.d(TAG, "No alert for Beer Sheva found, no route will be shown.")
+                    }
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e(TAG, "Error fetching data: ", error.toException())
+            }
+        })
+
         // יצירת ערוץ ההתראה (Notification Channel)
         createNotificationChannel()
 
@@ -32,7 +92,7 @@ class MyForegroundService : Service() {
         // הפעלת השירות כ-Foreground Service
         startForeground(1, notification)
         Log.d("MyForegroundService", "Notification created and service started")
-
+        //run()
         return START_STICKY
     }
 
@@ -47,6 +107,38 @@ class MyForegroundService : Service() {
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
         }
+    }
+
+    private fun sendBeerShevaAlertNotification() {
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        val channelId = "CHANNEL_ID"
+
+        // כוונה שתיפתח כאשר המשתמש ילחץ על ההתראה
+        val intent = Intent(this, MainActivity::class.java).apply {
+            putExtra("action", "guideUserByLocation") // מעבירים פרמטר שמעיד על הפעולה
+        }
+        val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+
+
+        // בניית ההתראה
+        val notification = NotificationCompat.Builder(this, channelId)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)  // ודאי שיש אייקון מתאים
+            .setContentTitle("התראה לבאר שבע")
+            .setContentText("התקבלה התראה לבאר שבע, לחץ כאן לקבלת הנחיות.")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true) // ההתראה תעלם אחרי לחיצה
+            .build()
+
+        // הצגת ההתראה
+        notificationManager.notify(2, notification)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        isServiceRunning = false
+        Log.d("MyForegroundService", "Foreground service is destroyed")
     }
 
     override fun onBind(intent: Intent?): IBinder? {
