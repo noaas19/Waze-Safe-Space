@@ -26,17 +26,7 @@ class MyForegroundService : Service() {
     companion object {
         var isServiceRunning = false
     }
-//    //בדיקה
-//    fun run() {
-//        while (true) {
-//            Log.e("Service", "Service is running...")
-//            try {
-//                Thread.sleep(2000)
-//            } catch (e: InterruptedException) {
-//                e.printStackTrace()
-//            }
-//        }
-//    }
+
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
 
@@ -92,7 +82,6 @@ class MyForegroundService : Service() {
         // הפעלת השירות כ-Foreground Service
         startForeground(1, notification)
         Log.d("MyForegroundService", "Notification created and service started")
-        //run()
         return START_STICKY
     }
 
@@ -108,7 +97,6 @@ class MyForegroundService : Service() {
             manager.createNotificationChannel(channel)
         }
     }
-
     private fun sendBeerShevaAlertNotification() {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -118,12 +106,18 @@ class MyForegroundService : Service() {
         val intent = Intent(this, MainActivity::class.java).apply {
             putExtra("action", "guideUserByLocation") // מעבירים פרמטר שמעיד על הפעולה
         }
-        val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
 
+        // PendingIntent עם FLAG_UPDATE_CURRENT כדי לוודא שהכוונה מתעדכנת
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
 
         // בניית ההתראה
         val notification = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)  // ודאי שיש אייקון מתאים
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle("התראה לבאר שבע")
             .setContentText("התקבלה התראה לבאר שבע, לחץ כאן לקבלת הנחיות.")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -134,6 +128,7 @@ class MyForegroundService : Service() {
         // הצגת ההתראה
         notificationManager.notify(2, notification)
     }
+
 
     override fun onDestroy() {
         super.onDestroy()

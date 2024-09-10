@@ -7,6 +7,7 @@ import android.graphics.Color
 import android.location.Location
 import android.os.Build
 import android.os.Bundle
+import android.os.Looper
 import android.util.Log
 import android.widget.TextView
 import android.widget.Toast
@@ -91,10 +92,15 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         // קריאה לבקשת הרשאת התראות
         requestNotificationPermission()
 
-        // בדיקת הכוונה שהתקבלה
+//        // בדיקת הכוונה שהתקבלה
+//        val action = intent.getStringExtra("action")
+//        Log.d("MainActivity", "Received action: $action")
+//        if (action == "guideUserByLocation") {
+//            guideUserByLocation() // קריאה לפונקציה שמנחה את המשתמש
+//        }
         val action = intent.getStringExtra("action")
         if (action == "guideUserByLocation") {
-            guideUserByLocation() // קריאה לפונקציה שמנחה את המשתמש
+            waitForLocationAndGuideUser()  // במקום לקרוא ישירות ל-guideUserByLocation
         }
 
         mFunctions = FirebaseFunctions.getInstance()
@@ -120,13 +126,27 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private fun guideUserByLocation(){
         // בדיקת מיקום המשתמש
+        Log.d(TAG, " guide")
         if (isUserInBeerSheva(currentLocation)) {
             FindShelterHandler(60)
+            Log.d(TAG, " FindShelterHandler called")
         } else {
             Log.d(TAG, "User is not in Beer-Sheva, no route will be shown.")
         }
     }
-
+    private fun waitForLocationAndGuideUser() {
+        val handler = android.os.Handler(Looper.getMainLooper())
+        handler.postDelayed(object : Runnable {
+            override fun run() {
+                if (currentLocation != null) {
+                    guideUserByLocation()  // קריאה לפונקציה כשהמיקום זמין
+                } else {
+                    Log.d(TAG, "Location not available yet, retrying...")
+                    handler.postDelayed(this, 2000)  // לנסות שוב בעוד 2 שניות
+                }
+            }
+        }, 2000)  // להתחיל עם השהייה של 2 שניות
+    }
     private fun FindShelterManually() {
         home = -1
         if (isUserInBeerSheva(currentLocation)) {
