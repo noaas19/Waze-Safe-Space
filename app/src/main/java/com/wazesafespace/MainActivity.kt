@@ -8,7 +8,10 @@ import android.location.Location
 import android.os.Build
 import android.os.Bundle
 import android.os.Looper
+import android.text.Html
 import android.util.Log
+import android.view.Gravity
+import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -40,6 +43,7 @@ import com.google.firebase.database.ValueEventListener
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.maps.android.PolyUtil
+import com.sothree.slidinguppanel.SlidingUpPanelLayout
 import com.wazesafespace.MyForegroundService
 
 
@@ -49,7 +53,6 @@ import java.util.Locale
 class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private var mGoogleMap: GoogleMap? = null
     private lateinit var shelters: List<Shelter>
-    //private lateinit var textViewMessage: TextView
     private lateinit var database: DatabaseReference
     private val TAG = "MainActivity"
     private lateinit var mFunctions: FirebaseFunctions
@@ -58,13 +61,12 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private var currentLocation: Location? = null
     private val FINE_PERMISSION_CODE = 1
     private val NOTIFICATION_PERMISSION_CODE = 1001
-
-
     private var isMapReady = false
 
     private var home = 0
-    private var findShalter = -1
-    private var addShalter = -1
+
+//    private lateinit var slidingLayout: SlidingUpPanelLayout
+//    private lateinit var tvInstructions: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -73,6 +75,10 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         val sharedPreferences = getSharedPreferences("app_preferences", MODE_PRIVATE)
         val isBackgroundApproved = sharedPreferences.getBoolean("isBackgroundApproved", false)
 
+//        slidingLayout = findViewById(R.id.sliding_layout)
+//        tvInstructions = findViewById(R.id.tvInstructions)
+//        Log.d("MainActivity", "slidingLayout initialized: $slidingLayout")
+//        Log.d("MainActivity", "tvInstructions initialized: $tvInstructions")
 
         // בדיקת האם המשתמש אישר כבר את הריצה ברקע
         if (isBackgroundApproved) {
@@ -88,19 +94,12 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             showBackgroundRunDialog()
         }
 
-
         // קריאה לבקשת הרשאת התראות
         requestNotificationPermission()
 
-//        // בדיקת הכוונה שהתקבלה
-//        val action = intent.getStringExtra("action")
-//        Log.d("MainActivity", "Received action: $action")
-//        if (action == "guideUserByLocation") {
-//            guideUserByLocation() // קריאה לפונקציה שמנחה את המשתמש
-//        }
         val action = intent.getStringExtra("action")
         if (action == "guideUserByLocation") {
-            waitForLocationAndGuideUser()  // במקום לקרוא ישירות ל-guideUserByLocation
+            waitForLocationAndGuideUser()
         }
 
         mFunctions = FirebaseFunctions.getInstance()
@@ -118,10 +117,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         if (intent.getBooleanExtra("callFindShelterManually", false)) {
             FindShelterManually()
         }
-
-        //להכניס חלק זה תחת פונקציה שניצור,אם המשתמש בבאר שבע,תוצג מפה ומסלול,אחרת,תוצג הודעה שההתרעה רלוונטית רק למי שבבאר שבע
-
-
     }
 
     private fun guideUserByLocation(){
@@ -131,9 +126,11 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             FindShelterHandler(60)
             Log.d(TAG, " FindShelterHandler called")
         } else {
+            //להקפיץ כאן הודעה שההתרעה רלוונטית רק למי שבבאר שבע
             Log.d(TAG, "User is not in Beer-Sheva, no route will be shown.")
         }
     }
+
     private fun waitForLocationAndGuideUser() {
         val handler = android.os.Handler(Looper.getMainLooper())
         handler.postDelayed(object : Runnable {
@@ -147,6 +144,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             }
         }, 2000)  // להתחיל עם השהייה של 2 שניות
     }
+
     private fun FindShelterManually() {
         home = -1
         if (isUserInBeerSheva(currentLocation)) {
@@ -257,7 +255,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             )
             return
         }
-
         Log.d(TAG, "fusedLocationProviderClient called")
         fusedLocationProviderClient.getCurrentLocation(
             Priority.PRIORITY_HIGH_ACCURACY,
@@ -297,8 +294,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             mGoogleMap?.addMarker(
                 MarkerOptions()
                     .position(currentLatLng)
-                    .title("My Location")
-                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW)) // Mark in yellow
+                    .title("User Location")
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW))
             )
             mGoogleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 18f))
         }
@@ -312,7 +309,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             val location = LatLng(shelter.lat, shelter.lon)
             mGoogleMap?.addMarker(MarkerOptions().position(location).title(shelter.name))
         }
-
         moveCameraToCurrentLocation() // קריאה לפונקציה לאחר טעינת המפה
 
         if (currentLocation != null) {
@@ -389,25 +385,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
 
-//    override fun onRequestPermissionsResult(
-//        requestCode: Int,
-//        permissions: Array<out String>,
-//        grantResults: IntArray
-//    ) {
-//        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-//        if (requestCode == FINE_PERMISSION_CODE) {
-//            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-//                getLocation()
-//            } else {
-//                Toast.makeText(
-//                    this,
-//                    "Location permission is denied, please allow the permission",
-//                    Toast.LENGTH_SHORT
-//                ).show()
-//            }
-//        }
-//    }
-
     /**
      * Calculates the distance between two locations.
      *
@@ -469,8 +446,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         val strOrigin = "origin=${origin.latitude},${origin.longitude}"
         val strDest = "destination=${dest.latitude},${dest.longitude}"
         val mode = "mode=walking" // תוכל לשנות ל-driving, walking, bicycling או transit
+        val language = "language=he" // הוספת פרמטר לשפה העברית
         val key = "AIzaSyBbd4b2PmNe-yjdGRUCD9crOw5mqlivOqo"
-        return "https://maps.googleapis.com/maps/api/directions/json?$strOrigin&$strDest&$mode&key=$key"
+        return "https://maps.googleapis.com/maps/api/directions/json?$strOrigin&$strDest&$mode&$language&key=$key"
     }
 
 
@@ -483,7 +461,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
      */
     private fun requestDirections(origin: LatLng, dest: LatLng, callback: (String) -> Unit) {
         val url = getDirectionsUrl(origin, dest)
-        Log.d(TAG, "Requesting directions URL: $url")
+        Log.d(TAG, "Requesting directions URL: $url")//מדפיס את כל ההנחיות,אבל זה לא מסודר לעין
         val request = StringRequest(Request.Method.GET, url, Response.Listener { response ->
             Log.d(TAG, "Directions response: $response")
             callback(response)
@@ -517,9 +495,10 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         val travelTimeText = legs.getJSONObject(0).getJSONObject("duration").getString("text")
         val travelTimeInSeconds = parseDurationToSeconds(travelTimeText)
 
-
         // Update the TextView with the travel time
         textViewTravelTime.text = "Estimated Travel Time: $travelTimeText"
+
+        val instructionsList = StringBuilder()  // יצירת מחרוזת להצגת כל ההנחיות
 
         // Drawing the route on the map
         for (i in 0 until steps.length()) {
@@ -527,13 +506,59 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             val polyline = step.getJSONObject("polyline")
             val pointsArray = polyline.getString("points")
             points.addAll(PolyUtil.decode(pointsArray))
+
+            // איסוף ההנחיות מכל שלב
+            val instructions = step.getString("html_instructions")
+            val cleanedInstructions = Html.fromHtml(instructions).toString() // הסרת HTML
+            instructionsList.append("שלב ${i+1}: ").append(cleanedInstructions).append("\n\n")
         }
 
+        // הוספת המסלול למפה
         polylineOptions.addAll(points)
         polylineOptions.width(10f)
         polylineOptions.color(Color.BLUE)
-
         googleMap.addPolyline(polylineOptions)
+
+        // אתחול הכפתור להצגת ההנחיות
+        val btnShowInstructions = findViewById<Button>(R.id.btnShowInstructions)
+
+        btnShowInstructions.setOnClickListener {
+            // הגדרת הדיאלוג
+            val dialog = AlertDialog.Builder(this)
+                .setTitle("הנחיות מסלול")
+                .setMessage(instructionsList.toString())
+                .setPositiveButton("סגור") { dialog, _ ->
+                    dialog.dismiss()
+                }
+                .create()
+
+            // שינוי גודל ומיקום הדיאלוג
+            dialog.setOnShowListener {
+                val window = dialog.window
+                window?.setLayout((resources.displayMetrics.widthPixels * 0.9).toInt(),  // 90% מרוחב המסך
+                    (resources.displayMetrics.heightPixels * 0.4).toInt()) // 40% מגובה המסך
+                val params = window?.attributes
+                params?.gravity = Gravity.BOTTOM or Gravity.END  // מיקום הדיאלוג
+                params?.y = 50 // מרחק מהקצה התחתון
+                params?.x = 50 // מרחק מהקצה הימני
+                window?.attributes = params
+            }
+
+            dialog.show()  // הצגת הדיאלוג
+        }
+
+
+//        btnShowInstructions.setOnClickListener {
+//            // הצגת AlertDialog עם ההנחיות
+//            AlertDialog.Builder(this)
+//                .setTitle("הנחיות מסלול")
+//                .setMessage(instructionsList.toString())  // הצגת ההנחיות
+//                .setPositiveButton("סגור") { dialog, _ ->
+//                    dialog.dismiss()
+//                }
+//                .show()
+//        }
+
         Log.d(TAG, "Route drawn on map")
         return travelTimeInSeconds
     }
@@ -560,8 +585,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
         return totalSeconds
     }
-
-
 }
 
 private fun isUserInBeerSheva(location: Location?): Boolean {
