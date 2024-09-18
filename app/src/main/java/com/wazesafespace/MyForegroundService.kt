@@ -3,7 +3,6 @@ package com.wazesafespace
 import android.app.Service
 import android.content.Intent
 import android.os.IBinder
-import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -68,7 +67,7 @@ class MyForegroundService : Service() {
         createNotificationChannel()
 
         // יצירת ההתראה
-        val notificationIntent = Intent(this, MainActivity::class.java)
+        val notificationIntent = Intent(this, MapFragment::class.java)
         val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE)
 
         val notification = NotificationCompat.Builder(this, "CHANNEL_ID")
@@ -103,17 +102,28 @@ class MyForegroundService : Service() {
         val channelId = "CHANNEL_ID"
 
         // כוונה שתיפתח כאשר המשתמש ילחץ על ההתראה
-        val intent = Intent(this, MainActivity::class.java).apply {
+        val intent = Intent(this, MapFragment::class.java).apply {
             putExtra("action", "guideUserByLocation") // מעבירים פרמטר שמעיד על הפעולה
         }
 
         // PendingIntent עם FLAG_UPDATE_CURRENT כדי לוודא שהכוונה מתעדכנת
-        val pendingIntent = PendingIntent.getActivity(
+        /*val pendingIntent = PendingIntent.getActivity(
             this,
             0,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )*/
+        val broadcastIntent = Intent("com.example.ACTION_SEND_MESSAGE")
+        broadcastIntent.putExtra("message", "התקבלה התראה לבאר שבע, לחץ כאן לקבלת הנחיות.")
+
+// Create a PendingIntent that sends the broadcast
+        val pendingIntent = PendingIntent.getBroadcast(
+            this,
+            0,
+            broadcastIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+
 
         // בניית ההתראה
         val notification = NotificationCompat.Builder(this, channelId)
