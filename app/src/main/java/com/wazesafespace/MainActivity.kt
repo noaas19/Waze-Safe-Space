@@ -142,7 +142,9 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         // טוענים את הפרגמנט הראשוני עם הלוגו והכפתורים
         replaceFragment(Home())
+
         requestNotificationPermission()
+
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
@@ -220,8 +222,10 @@ class MainActivity : AppCompatActivity() {
         when (requestCode) {
             FINE_PERMISSION_CODE -> {
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.d("Permission", "Location permission granted.")
                     mapFragment.getLocation()
                 } else {
+                    Log.d("Permission", "Location permission is denied.")
                     Toast.makeText(
                         this,
                         "Location permission is denied, please allow the permission",
@@ -235,6 +239,7 @@ class MainActivity : AppCompatActivity() {
                     Log.d("NotificationPermission", "Notification permission granted.")
                 } else {
                     // הרשאת התראות לא ניתנה
+                    Log.d("NotificationPermission", "Notification permission is denied.")
                     Toast.makeText(
                         this,
                         "Notification permission is denied.",

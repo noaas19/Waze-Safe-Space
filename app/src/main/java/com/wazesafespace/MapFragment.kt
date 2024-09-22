@@ -10,6 +10,8 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import android.text.Html
 import android.util.Log
 import android.view.Gravity
@@ -17,6 +19,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -47,6 +50,7 @@ import com.google.maps.android.PolyUtil
 
 
 import org.json.JSONObject
+import java.util.Locale
 
 
 sealed class ShelterEvents {
@@ -57,7 +61,7 @@ sealed class ShelterEvents {
     ) : ShelterEvents()
 }
 
-class MapFragment : Fragment(), OnMapReadyCallback {
+class MapFragment : Fragment(), OnMapReadyCallback, TextToSpeech.OnInitListener{
     private var mGoogleMap: GoogleMap? = null
     private lateinit var shelters: List<Shelter>
     private val TAG = "MapFragment"
@@ -70,6 +74,11 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     private var _theView: View? = null
     private val theView: View get() = _theView!!
 
+    // משתנים בשביל הנחיה קולית
+    private lateinit var textToSpeech: TextToSpeech
+    private var isTtsInitialized = false
+    private var isMuted = true
+    private lateinit var btnVoiceInstructions: ImageButton
 
     fun insertAll(shelters: List<Shelter>) {
         FirebaseDatabase.getInstance()
@@ -83,21 +92,32 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         savedInstanceState: Bundle?
     ): View {
         _theView =  layoutInflater.inflate(R.layout.map_fragment, container,false)
+        textToSpeech = TextToSpeech(requireContext(), this)
         return theView
     }
 
+
     override fun onDestroy() {
+        // סגירת TextToSpeech
+        if (textToSpeech != null) {
+            textToSpeech.stop()
+            textToSpeech.shutdown()
+        }
+
         super.onDestroy()
         _theView = null
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
         mFunctions = FirebaseFunctions.getInstance()
 
         shelters = ShelterUtils.loadSheltersFromAssets(requireContext(), "shelters.json")
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(requireActivity())
         textViewTravelTime = view.findViewById(R.id.textViewTravelTime)
+
+        btnVoiceInstructions = view.findViewById(R.id.btnVoiceInstructions)
 
         val mapFragment = childFragmentManager
             .findFragmentById(R.id.mapFragment) as SupportMapFragment
@@ -111,8 +131,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                     getLocation { location ->
                         onLocation(
                             location= location,
-                            showDialog = false ,
-
+                            showDialog = false
                         )
                     }
                 }
@@ -391,6 +410,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
      * @param response The response from the Directions API
      * @param googleMap The GoogleMap object to draw the route on
      */
+
     private fun drawRouteOnMap(response: String, googleMap: GoogleMap): Int {
         Log.d(TAG, "Drawing route on map")
         val jsonObject = JSONObject(response)
@@ -408,7 +428,10 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         // Update the TextView with the travel time
         textViewTravelTime.text = "Estimated Travel Time: $travelTimeText"
 
+        // אתחול הכפתור להצגת ההנחיות
+        val btnShowInstructions = theView.findViewById<Button>(R.id.btnShowInstructions)
         val instructionsList = StringBuilder()  // יצירת מחרוזת להצגת כל ההנחיות
+        val instructionsForSpeech = mutableListOf<String>()
 
         // Drawing the route on the map
         for (i in 0 until steps.length()) {
@@ -420,7 +443,8 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             // איסוף ההנחיות מכל שלב
             val instructions = step.getString("html_instructions")
             val cleanedInstructions = Html.fromHtml(instructions).toString() // הסרת HTML
-            instructionsList.append("שלב ${i+1}: ").append(cleanedInstructions).append("\n\n")
+            instructionsList.append("שלב ${i + 1}: ").append(cleanedInstructions).append("\n\n")
+            instructionsForSpeech.add(cleanedInstructions)
         }
 
         // הוספת המסלול למפה
@@ -429,11 +453,23 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         polylineOptions.color(Color.BLUE)
         googleMap.addPolyline(polylineOptions)
 
-        // אתחול הכפתור להצגת ההנחיות
-        val btnShowInstructions = theView.findViewById<Button>(R.id.btnShowInstructions)
+        btnVoiceInstructions.setOnClickListener {
+            if (isMuted) {
+                btnVoiceInstructions.setImageResource(R.drawable.volume_up)
+                isMuted = false
+                if (instructionsForSpeech.isNotEmpty()) {
+                    speakOutAllInstructions(instructionsForSpeech)
+                } else {
+                    Toast.makeText(requireContext(), "אין הנחיות לקריאה", Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                btnVoiceInstructions.setImageResource(R.drawable.volume_off)
+                isMuted = true
+                textToSpeech.stop()  // עצירת ההקראה
+            }
+        }
 
         btnShowInstructions.setOnClickListener {
-            // הגדרת הדיאלוג
             val dialog = AlertDialog.Builder(requireContext())
                 .setTitle("הנחיות מסלול")
                 .setMessage(instructionsList.toString())
@@ -442,24 +478,66 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                 }
                 .create()
 
-            // שינוי גודל ומיקום הדיאלוג
             dialog.setOnShowListener {
                 val window = dialog.window
-                window?.setLayout((resources.displayMetrics.widthPixels * 0.9).toInt(),  // 90% מרוחב המסך
-                    (resources.displayMetrics.heightPixels * 0.4).toInt()) // 40% מגובה המסך
+                window?.setLayout(
+                    (resources.displayMetrics.widthPixels * 0.9).toInt(),
+                    (resources.displayMetrics.heightPixels * 0.4).toInt()
+                )
                 val params = window?.attributes
-                params?.gravity = Gravity.BOTTOM or Gravity.END  // מיקום הדיאלוג
+                params?.gravity = Gravity.BOTTOM or Gravity.END
                 params?.y = 50 // מרחק מהקצה התחתון
                 params?.x = 50 // מרחק מהקצה הימני
                 window?.attributes = params
             }
-
             dialog.show()  // הצגת הדיאלוג
         }
-
-
         Log.d(TAG, "Route drawn on map")
         return travelTimeInSeconds
+    }
+
+    private fun speakOutAllInstructions(instructions: List<String>) {
+
+        if (isTtsInitialized) {
+            for (instruction in instructions) {
+                Log.d("TTS", "Speaking out: $instruction")
+                textToSpeech.speak(instruction, TextToSpeech.QUEUE_ADD, null, null)
+            }
+
+            // מאזין שסיימנו את ההקראה
+            textToSpeech.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                override fun onDone(utteranceId: String?) {
+                    activity?.runOnUiThread {
+                        //החלפת אייקון לרמקול מושתק
+                        btnVoiceInstructions.setImageResource(R.drawable.volume_off)
+                        isMuted = true
+                    }
+                }
+
+                override fun onError(utteranceId: String?) {
+                    Log.e("TTS", "Error in speaking")
+                }
+
+                override fun onStart(utteranceId: String?) {
+                    Log.d("TTS", "Started speaking utterance $utteranceId")
+                }
+            })
+        } else {
+            Log.e("TTS", "TextToSpeech is not initialized")
+        }
+    }
+
+    override fun onInit(status: Int) {
+        if (status == TextToSpeech.SUCCESS) {
+            val result = textToSpeech.setLanguage(Locale("he"))
+            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                Log.e("TTS", "Language not supported")
+            } else {
+                isTtsInitialized = true
+            }
+        } else {
+            Log.e("TTS", "Initialization failed")
+        }
     }
 
 

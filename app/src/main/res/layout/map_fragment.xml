@@ -38,15 +38,33 @@
         app:layout_constraintTop_toTopOf="@+id/mapFragment"
         app:layout_constraintVertical_bias="0.227" />
 
+
+    <!-- כפתור הצג הנחיות-->
     <Button
         android:id="@+id/btnShowInstructions"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_margin="16dp"
         android:text="הצג הנחיות"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_margin="16dp"
-        />
+        app:layout_constraintEnd_toStartOf="@+id/btnVoiceInstructions"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintHorizontal_chainStyle="packed" />
+
+    <!-- כפתור הנחיה קולית-->
+    <ImageButton
+        android:id="@+id/btnVoiceInstructions"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginBottom="16dp"
+        android:background="?attr/selectableItemBackground"
+        android:contentDescription="הנחיה קולית"
+        android:padding="8dp"
+        android:scaleType="centerInside"
+        android:src="@drawable/volume_off"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/btnShowInstructions"
+        app:tint="@android:color/black" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>
