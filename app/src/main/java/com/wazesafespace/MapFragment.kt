@@ -497,20 +497,18 @@ class MapFragment : Fragment(), OnMapReadyCallback, TextToSpeech.OnInitListener{
     }
 
     private fun speakOutAllInstructions(instructions: List<String>) {
-
         if (isTtsInitialized) {
-            for (instruction in instructions) {
-                Log.d("TTS", "Speaking out: $instruction")
-                textToSpeech.speak(instruction, TextToSpeech.QUEUE_ADD, null, null)
-            }
+            var instructionsLeft = instructions.size // סופר כמה הנחיות נשארו לקריאה
 
-            // מאזין שסיימנו את ההקראה
             textToSpeech.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                 override fun onDone(utteranceId: String?) {
                     activity?.runOnUiThread {
-                        //החלפת אייקון לרמקול מושתק
-                        btnVoiceInstructions.setImageResource(R.drawable.volume_off)
-                        isMuted = true
+                        instructionsLeft-- // מפחית אחת כל פעם שקטע מוקרא
+                        if (instructionsLeft == 0) {
+                            // כל ההנחיות הוקראו, מחליף אייקון לרמקול מושתק
+                            btnVoiceInstructions.setImageResource(R.drawable.volume_off)
+                            isMuted = true
+                        }
                     }
                 }
 
@@ -522,10 +520,20 @@ class MapFragment : Fragment(), OnMapReadyCallback, TextToSpeech.OnInitListener{
                     Log.d("TTS", "Started speaking utterance $utteranceId")
                 }
             })
+
+            var utteranceCount = 0
+            for (instruction in instructions) {
+                val utteranceId = "utterance_$utteranceCount"
+                utteranceCount++
+                Log.d("TTS", "Speaking out: $instruction with utteranceId: $utteranceId")
+                textToSpeech.speak(instruction, TextToSpeech.QUEUE_ADD, null, utteranceId)
+            }
         } else {
             Log.e("TTS", "TextToSpeech is not initialized")
         }
     }
+
+
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
