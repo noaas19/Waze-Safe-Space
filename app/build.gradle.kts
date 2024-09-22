@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "com.wazesafespace"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -54,6 +54,7 @@ dependencies {
     implementation("com.google.firebase:firebase-functions:20.1.0")
     implementation("com.google.firebase:firebase-appcheck:17.0.1")
     implementation("com.google.firebase:firebase-appcheck-playintegrity:17.0.1")
+    implementation ("com.google.firebase:firebase-firestore:24.7.0")
     implementation(libs.firebase.functions.ktx)
     implementation(libs.play.services.location)
     implementation(libs.firebase.firestore.ktx)

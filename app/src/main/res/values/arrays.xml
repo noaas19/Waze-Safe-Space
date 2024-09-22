@@ -1,0 +1,12 @@
+<resources>
+    <string-array name="fitness_levels">
+        <item>לא בכושר</item>
+        <item>בינוני</item>
+        <item>ספורטאי</item>
+    </string-array>
+
+    <string-array name="accessibility_options">
+        <item>נגיש</item>
+        <item>לא נגיש</item>
+    </string-array>
+</resources>

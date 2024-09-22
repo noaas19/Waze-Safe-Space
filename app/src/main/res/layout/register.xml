@@ -1,6 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
 
-</RelativeLayout>
+    <EditText
+        android:id="@+id/editTextEmail"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="הכנס אימייל"
+        android:inputType="textEmailAddress"
+        android:padding="12dp"
+        android:layout_marginBottom="12dp"
+        />
+
+    <EditText
+        android:id="@+id/editTextPassword"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="הכנס סיסמה"
+        android:inputType="textPassword"
+        android:padding="12dp"
+        android:layout_marginBottom="12dp"
+      />
+
+    <Button
+        android:id="@+id/buttonRegister"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="הרשם"
+        android:padding="12dp"
+        android:background="@color/primaryColor"
+        android:textColor="@android:color/white"/>
+
+    <Button
+        android:layout_gravity="center"
+        android:id="@+id/alreadyHaveAccount"
+        android:layout_width="wrap_content"
+        android:textColor="@color/black"
+        android:background="@android:color/transparent"
+        android:layout_height="wrap_content"
+        android:text="Already have an account?  Sign in now"
+        android:layout_marginTop="16dp" />
+</LinearLayout>

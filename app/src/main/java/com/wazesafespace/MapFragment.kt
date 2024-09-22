@@ -41,6 +41,7 @@ import com.google.android.gms.tasks.CancellationToken
 import com.google.android.gms.tasks.CancellationTokenSource
 import com.google.android.gms.tasks.OnTokenCanceledListener
 import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.maps.android.PolyUtil
 
@@ -68,6 +69,13 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     private var isMapReady = false
     private var _theView: View? = null
     private val theView: View get() = _theView!!
+
+
+    fun insertAll(shelters: List<Shelter>) {
+        FirebaseDatabase.getInstance()
+            .getReference("shelters")
+            .setValue(shelters)
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -103,7 +111,8 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                     getLocation { location ->
                         onLocation(
                             location= location,
-                            showDialog = false
+                            showDialog = false ,
+
                         )
                     }
                 }
@@ -199,6 +208,11 @@ class MapFragment : Fragment(), OnMapReadyCallback {
      * Moves the camera to the current location of the device.
      */
     private fun moveCameraToCurrentLocation() {
+        if(currentLocation == null) {
+            val currentLatLng = LatLng(31.2515, 34.7995)
+            mGoogleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 18f))
+            return
+        }
         currentLocation?.let {
             val currentLatLng = LatLng(it.latitude, it.longitude)
             Log.d(TAG, "Moving camera to current location: $currentLatLng")
@@ -226,50 +240,52 @@ class MapFragment : Fragment(), OnMapReadyCallback {
 
     }
 
-    fun onLocation(location: Location,
-                   showDialog: Boolean,
-                   limitedShieldingTime: Long = 0) {
+    fun onLocation(
+        location: Location,
+        showDialog: Boolean,
+        limitedShieldingTime: Long = 0
+    ) {
         val googleMap = mGoogleMap ?: return
-            Log.d(TAG, "User location: $location")
-            val nearestShelter = findNearestShelter(location, shelters)
-            if (nearestShelter != null) {
-                val origin = LatLng(location.latitude, location.longitude)
-                val dest = LatLng(nearestShelter.lat, nearestShelter.lon)
-                Log.d(TAG, "Requesting directions from $origin to $dest")
+        Log.d(TAG, "User location: $location")
+        val nearestShelter = findNearestShelter(location, shelters)
+        if (nearestShelter != null) {
+            val origin = LatLng(location.latitude, location.longitude)
+            val dest = LatLng(nearestShelter.lat, nearestShelter.lon)
+            //Log.d(TAG, "Requesting directions from $origin to $dest")
 
-                // הוספת סמן במיקום המוצא בצבע צהוב
-                googleMap.addMarker(
-                    MarkerOptions()
-                        .position(origin)
-                        .title("My Location")
-                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW))
-                )
+            // הוספת סמן במיקום המוצא בצבע צהוב
+            googleMap.addMarker(
+                MarkerOptions()
+                    .position(origin)
+                    .title("My Location")
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW))
+            )
 
-                // הוספת סמן ביעד (המקלט) בצבע כחול
-                googleMap.addMarker(
-                    MarkerOptions()
-                        .position(dest)
-                        .title(nearestShelter.name)
-                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
-                )
+            // הוספת סמן ביעד (המקלט) בצבע כחול
+            googleMap.addMarker(
+                MarkerOptions()
+                    .position(dest)
+                    .title(nearestShelter.name)
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
+            )
 
-                requestDirections(origin, dest) { response ->
-                    drawRouteOnMap(response, googleMap)
-                    val travelTimeInSeconds = drawRouteOnMap(response, mGoogleMap!!)
-                    if (showDialog && limitedShieldingTime > 0) {
-                        if (travelTimeInSeconds > limitedShieldingTime) {
-                            // הצגת הודעה למשתמש במידה ואין מסלול בזמן הנדרש
-                            AlertDialog.Builder(requireContext())
-                                .setTitle("אין מסלול בטוח בזמן ההתמגנות")
-                                .setMessage("מומלץ להיכנס לבניין סמוך. אם אין בניין בסביבה, שכב על הרצפה עם ידיים על הראש.")
-                                .setPositiveButton("אישור") { dialog, _ ->
-                                    dialog.dismiss()
-                                }
-                                .show()
-                        }
+            requestDirections(origin, dest) { response ->
+                drawRouteOnMap(response, googleMap)
+                val travelTimeInSeconds = drawRouteOnMap(response, mGoogleMap!!)
+                if (showDialog && limitedShieldingTime > 0) {
+                    if (travelTimeInSeconds > limitedShieldingTime) {
+                        // הצגת הודעה למשתמש במידה ואין מסלול בזמן הנדרש
+                        AlertDialog.Builder(requireContext())
+                            .setTitle("אין מסלול בטוח בזמן ההתמגנות")
+                            .setMessage("מומלץ להיכנס לבניין סמוך. אם אין בניין בסביבה, שכב על הרצפה עם ידיים על הראש.")
+                            .setPositiveButton("אישור") { dialog, _ ->
+                                dialog.dismiss()
+                            }
+                            .show()
                     }
                 }
             }
+        }
        /* } else {
             Log.d(TAG, "Current location is null, moving camera to first shelter")
             shelters.firstOrNull()?.let { firstShelter ->
@@ -278,34 +294,6 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             }
         }*/
     }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        when (requestCode) {
-            FINE_PERMISSION_CODE -> {
-                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    /*if(isManualAddress) {
-                        getAddressManually(address, ::onLocation)
-                    }else {
-                        getCurrentLocation(::onLocation)
-                    }
-                    */
-
-                } else {
-                    Toast.makeText(
-                        requireContext(),
-                        "Location permission is denied, please allow the permission",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
-        }
-    }
-
 
     /**
      * Calculates the distance between two locations.

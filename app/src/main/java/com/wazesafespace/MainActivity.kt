@@ -18,10 +18,12 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentContainerView
+import com.google.firebase.auth.FirebaseAuth
 import com.wazesafespace.databinding.ActivityMain2Binding
 
 sealed class CurrentScreen {
     data object Home : CurrentScreen()
+    data object Register: CurrentScreen()
     data object Login : CurrentScreen()
     data object Map : CurrentScreen()
     data object Profile: CurrentScreen()
@@ -99,13 +101,19 @@ class MainActivity : AppCompatActivity() {
                 currentScreen = CurrentScreen.MyShelters
                 replaceFragment(Shelters())
             }
+            R.id.menuLogout-> {
 
-            R.id.menuLogin -> {
-                if(currentScreen is CurrentScreen.Login) {
-                    return true
-                }
-                currentScreen = CurrentScreen.Login
-                replaceFragment(Login())
+                AlertDialog
+                    .Builder(this)
+                    .setTitle("Log out")
+                    .setMessage("Are you sure you want to log out?")
+                    .setPositiveButton("Yes") { p0, p1 ->
+                        FirebaseAuth.getInstance().signOut()
+                        finish()
+                        startActivity(Intent(this, AuthActivity::class.java))
+                    }
+                    .setNegativeButton("Cancel",null)
+                    .show()
             }
             R.id.menuProfile -> {
                 if(currentScreen is CurrentScreen.Profile) {
@@ -192,7 +200,7 @@ class MainActivity : AppCompatActivity() {
 
         // Register the BroadcastReceiver with the intent filter
         val intentFilter = IntentFilter("com.example.ACTION_SEND_MESSAGE")
-        registerReceiver(alertReceiver, intentFilter)
+        registerReceiver(alertReceiver, intentFilter, RECEIVER_NOT_EXPORTED)
     }
 
     private fun replaceFragment(fragment: Fragment) {
