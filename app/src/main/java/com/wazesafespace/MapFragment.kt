@@ -1,30 +1,24 @@
 package com.wazesafespace
 
 import android.Manifest
-import android.content.Context.MODE_PRIVATE
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.location.Location
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
-import android.os.Looper
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.text.Html
 import android.util.Log
 import android.view.Gravity
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import androidx.fragment.app.Fragment
 import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.StringRequest
@@ -43,9 +37,11 @@ import com.google.android.gms.maps.model.PolylineOptions
 import com.google.android.gms.tasks.CancellationToken
 import com.google.android.gms.tasks.CancellationTokenSource
 import com.google.android.gms.tasks.OnTokenCanceledListener
-import com.google.firebase.database.DatabaseReference
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.functions.FirebaseFunctions
+import com.google.gson.Gson
 import com.google.maps.android.PolyUtil
 
 
@@ -53,15 +49,13 @@ import org.json.JSONObject
 import java.util.Locale
 
 
-sealed class ShelterEvents {
-    data object ShelterFromNotification : ShelterEvents()
-    data class ShelterManually(
-        val currentLocation: Boolean,
-        val address: String? = ""
-    ) : ShelterEvents()
-}
+data class ShelterEvent(
+    val type: String = "",
+    var currentLocation: Boolean = false,
+    var address: String? = null
+)
 
-class MapFragment : Fragment(), OnMapReadyCallback, TextToSpeech.OnInitListener{
+class MapFragment : AppCompatActivity(), OnMapReadyCallback, TextToSpeech.OnInitListener{
     private var mGoogleMap: GoogleMap? = null
     private lateinit var shelters: List<Shelter>
     private val TAG = "MapFragment"
@@ -71,8 +65,6 @@ class MapFragment : Fragment(), OnMapReadyCallback, TextToSpeech.OnInitListener{
     private var currentLocation: Location? = null
     private val FINE_PERMISSION_CODE = 1
     private var isMapReady = false
-    private var _theView: View? = null
-    private val theView: View get() = _theView!!
 
     // משתנים בשביל הנחיה קולית
     private lateinit var textToSpeech: TextToSpeech
@@ -80,20 +72,28 @@ class MapFragment : Fragment(), OnMapReadyCallback, TextToSpeech.OnInitListener{
     private var isMuted = true
     private lateinit var btnVoiceInstructions: ImageButton
 
-    fun insertAll(shelters: List<Shelter>) {
-        FirebaseDatabase.getInstance()
-            .getReference("shelters")
-            .setValue(shelters)
-    }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _theView =  layoutInflater.inflate(R.layout.map_fragment, container,false)
-        textToSpeech = TextToSpeech(requireContext(), this)
-        return theView
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.map_fragment)
+        textToSpeech = TextToSpeech(this, this)
+
+        mFunctions = FirebaseFunctions.getInstance()
+
+        shelters = ShelterUtils.loadSheltersFromAssets(this, "shelters.json")
+
+
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
+        textViewTravelTime = findViewById(R.id.textViewTravelTime)
+
+        btnVoiceInstructions = findViewById(R.id.btnVoiceInstructions)
+
+        val mapFragment = supportFragmentManager
+            .findFragmentById(R.id.mapFragment) as SupportMapFragment
+        mapFragment.getMapAsync(this) // initialize map after getting location
+
+
     }
 
 
@@ -105,28 +105,12 @@ class MapFragment : Fragment(), OnMapReadyCallback, TextToSpeech.OnInitListener{
         }
 
         super.onDestroy()
-        _theView = null
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
+    fun findShelter(event: ShelterEvent) {
 
-        mFunctions = FirebaseFunctions.getInstance()
-
-        shelters = ShelterUtils.loadSheltersFromAssets(requireContext(), "shelters.json")
-        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(requireActivity())
-        textViewTravelTime = view.findViewById(R.id.textViewTravelTime)
-
-        btnVoiceInstructions = view.findViewById(R.id.btnVoiceInstructions)
-
-        val mapFragment = childFragmentManager
-            .findFragmentById(R.id.mapFragment) as SupportMapFragment
-        mapFragment.getMapAsync(this) // initialize map after getting location
-    }
-    fun findShelter(event: ShelterEvents) {
-
-        when (event) {
-            is ShelterEvents.ShelterManually -> {
+        when (event.type) {
+             "ShelterManually" -> {
                 if(event.currentLocation) {
                     getLocation { location ->
                         onLocation(
@@ -140,7 +124,7 @@ class MapFragment : Fragment(), OnMapReadyCallback, TextToSpeech.OnInitListener{
 
                 }
             }
-            is ShelterEvents.ShelterFromNotification -> {
+            "ShelterNotification" -> {
               getLocation {  location ->
                     onLocation(
                         location=location,
@@ -161,24 +145,24 @@ class MapFragment : Fragment(), OnMapReadyCallback, TextToSpeech.OnInitListener{
     fun getLocation(callback: (Location) -> Unit  = {}) {
         Log.d(TAG, "getLocation called")
         if (ActivityCompat.checkSelfPermission(
-                requireContext(),
+                this,
                 Manifest.permission.ACCESS_FINE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
         ) {
             ActivityCompat.requestPermissions(
-                requireActivity(),
+                this,
                 arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
                 FINE_PERMISSION_CODE
             )
             return
         }
         if (ActivityCompat.checkSelfPermission(
-                requireContext(),
+                this,
                 Manifest.permission.ACCESS_COARSE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
         ) {
             ActivityCompat.requestPermissions(
-                requireActivity(),
+                this,
                 arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION),
                 FINE_PERMISSION_CODE
             )
@@ -196,7 +180,7 @@ class MapFragment : Fragment(), OnMapReadyCallback, TextToSpeech.OnInitListener{
             .addOnSuccessListener { location: Location? ->
                 if (location == null) {
                     Log.d(TAG, "location is null")
-                    Toast.makeText(requireContext(), "Cannot get location.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Cannot get location.", Toast.LENGTH_SHORT).show()
                 } else {
                     val lat = location.latitude
                     val lon = location.longitude
@@ -210,7 +194,7 @@ class MapFragment : Fragment(), OnMapReadyCallback, TextToSpeech.OnInitListener{
 
                     if(!isUserInBeerSheva(currentLocation))  {
                         Log.d(TAG, "User is not in Beer Sheva, no route will be shown.")
-                        Toast.makeText(requireContext(), "בשלב זה האפליקציה תומכת רק בעיר באר שבע", Toast.LENGTH_LONG)
+                        Toast.makeText(this, "בשלב זה האפליקציה תומכת רק בעיר באר שבע", Toast.LENGTH_LONG)
                             .show()
                         return@addOnSuccessListener
                     }
@@ -249,14 +233,30 @@ class MapFragment : Fragment(), OnMapReadyCallback, TextToSpeech.OnInitListener{
         mGoogleMap = googleMap
         isMapReady = true // סימון שהמפה מוכנה
         Log.d(TAG, "onMapReady is called")
-        shelters.forEach { shelter ->
-            val location = LatLng(shelter.lat, shelter.lon)
-            mGoogleMap?.addMarker(MarkerOptions().position(location).title(shelter.name))
-        }
+
         moveCameraToCurrentLocation() // קריאה לפונקציה לאחר טעינת המפה
 
         Handler().postDelayed({ textViewTravelTime.visibility = View.VISIBLE },1000)
 
+        val eventString = intent.getStringExtra("event") ?: return
+
+        val gson = Gson()
+        val event = gson.fromJson(eventString, ShelterEvent::class.java)
+
+        shelters.forEach { shelter ->
+            val location = LatLng(shelter.lat, shelter.lon)
+            mGoogleMap?.addMarker(MarkerOptions().position(location).title(shelter.name))
+        }
+
+        FirebaseDatabase.getInstance()
+            .getReference("shelters")
+            .get()
+            .addOnSuccessListener {
+                val sheltersFromDb = it.children.map { it.getValue(Shelter::class.java)}.filterNotNull()
+                shelters = sheltersFromDb
+                Log.d("Shetlers", sheltersFromDb.size.toString())
+                findShelter(event)
+            }
     }
 
     fun onLocation(
@@ -266,41 +266,44 @@ class MapFragment : Fragment(), OnMapReadyCallback, TextToSpeech.OnInitListener{
     ) {
         val googleMap = mGoogleMap ?: return
         Log.d(TAG, "User location: $location")
-        val nearestShelter = findNearestShelter(location, shelters)
-        if (nearestShelter != null) {
-            val origin = LatLng(location.latitude, location.longitude)
-            val dest = LatLng(nearestShelter.lat, nearestShelter.lon)
-            //Log.d(TAG, "Requesting directions from $origin to $dest")
+        findNearestShelter(location) { nearestShelters, needsAccess ->
+            val shelters = nearestShelters ?: return@findNearestShelter
+            getBestOption(location, shelters, needsAccess) { nearestShelter ->
 
-            // הוספת סמן במיקום המוצא בצבע צהוב
-            googleMap.addMarker(
-                MarkerOptions()
-                    .position(origin)
-                    .title("My Location")
-                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW))
-            )
+                val origin = LatLng(location.latitude, location.longitude)
+                val dest = LatLng(nearestShelter.lat, nearestShelter.lon)
+                Log.d("Nearst location", "XXx");
+                // הוספת סמן במיקום המוצא בצבע צהוב
+                googleMap.addMarker(
+                    MarkerOptions()
+                        .position(origin)
+                        .title("My Location")
+                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW))
+                )
 
-            // הוספת סמן ביעד (המקלט) בצבע כחול
-            googleMap.addMarker(
-                MarkerOptions()
-                    .position(dest)
-                    .title(nearestShelter.name)
-                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
-            )
+                // הוספת סמן ביעד (המקלט) בצבע כחול
+                googleMap.addMarker(
+                    MarkerOptions()
+                        .position(dest)
+                        .title(nearestShelter.name)
+                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
+                )
 
-            requestDirections(origin, dest) { response ->
-                drawRouteOnMap(response, googleMap)
-                val travelTimeInSeconds = drawRouteOnMap(response, mGoogleMap!!)
-                if (showDialog && limitedShieldingTime > 0) {
-                    if (travelTimeInSeconds > limitedShieldingTime) {
-                        // הצגת הודעה למשתמש במידה ואין מסלול בזמן הנדרש
-                        AlertDialog.Builder(requireContext())
-                            .setTitle("אין מסלול בטוח בזמן ההתמגנות")
-                            .setMessage("מומלץ להיכנס לבניין סמוך. אם אין בניין בסביבה, שכב על הרצפה עם ידיים על הראש.")
-                            .setPositiveButton("אישור") { dialog, _ ->
-                                dialog.dismiss()
-                            }
-                            .show()
+                requestDirections(origin, dest) { response ->
+
+                    drawRouteOnMap(response, googleMap)
+                    val travelTimeInSeconds = drawRouteOnMap(response, mGoogleMap!!)
+                    if (showDialog && limitedShieldingTime > 0) {
+                        if (travelTimeInSeconds > limitedShieldingTime) {
+                            // הצגת הודעה למשתמש במידה ואין מסלול בזמן הנדרש
+                            AlertDialog.Builder(this)
+                                .setTitle("אין מסלול בטוח בזמן ההתמגנות")
+                                .setMessage("מומלץ להיכנס לבניין סמוך. אם אין בניין בסביבה, שכב על הרצפה עם ידיים על הראש.")
+                                .setPositiveButton("אישור") { dialog, _ ->
+                                    dialog.dismiss()
+                                }
+                                .show()
+                        }
                     }
                 }
             }
@@ -312,6 +315,60 @@ class MapFragment : Fragment(), OnMapReadyCallback, TextToSpeech.OnInitListener{
                 mGoogleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(firstLocation, 18f))
             }
         }*/
+    }
+
+    private fun getBestOption(
+        currentLocation:Location,
+        nearestShelters: List<Shelter>,
+        needsAccess: Boolean,
+        callback: (Shelter) -> Unit) {
+        if(!needsAccess) {
+           callback.invoke(nearestShelters[0])
+        }
+        else {
+            if(nearestShelters.size > 1) {
+                if(!nearestShelters[0].hasStairs) {
+                    callback.invoke(nearestShelters[0])
+                }
+                else {
+                    val theUnAccessible = if(nearestShelters[0].hasStairs) {
+                        nearestShelters[0]
+                    }
+                    else {
+                        nearestShelters[1]
+                    }
+                    val theAccessible = if(theUnAccessible == nearestShelters[0] ) {
+                        nearestShelters[1]
+                    } else {
+                        nearestShelters[0]
+                    }
+
+                    requestRouteLength(
+                        origin=LatLng(currentLocation.latitude, currentLocation.longitude),
+                        dest=LatLng(theUnAccessible.lat, theUnAccessible.lon)
+                    ) { distanceFromInaccessible ->
+
+                        requestRouteLength(
+                            origin=LatLng(currentLocation.latitude, currentLocation.longitude),
+                            dest=LatLng(theAccessible.lat, theAccessible.lon)
+                        ) { distanceFromAccessible ->
+                            val distanceFromInaccessibleWeighted  = distanceFromInaccessible *  1.5
+                            if(distanceFromInaccessibleWeighted < distanceFromAccessible) {
+                                callback.invoke(theUnAccessible)
+                            }
+                            else {
+                                callback.invoke(theAccessible)
+                            }
+                        }
+                    }
+
+                }
+            }
+            else {
+                callback.invoke(nearestShelters[0])
+            }
+        }
+
     }
 
     /**
@@ -334,6 +391,34 @@ class MapFragment : Fragment(), OnMapReadyCallback, TextToSpeech.OnInitListener{
         return results[0]
     }
 
+
+
+    // returns 2 shelters at most (based on accessibility)
+    // sorted by distance
+    private fun filterForRelevantShelter(
+        userLocation: Location,
+        withAccessibility : Boolean
+    ) : List<Shelter> {
+
+        val sorted = shelters.sortedBy { shelter ->
+            calculateDistance(
+                userLocation.latitude,
+                userLocation.longitude,
+                shelter.lat,
+                shelter.lon
+            )
+        }
+        if(!withAccessibility) {
+            return listOf(sorted[0]) // min distance shelter
+        }
+        // find accessible 1
+        val accessible = sorted.firstOrNull { it.hasStairs }
+        val nonAccessible = sorted.first { !it.hasStairs }
+        if(accessible!= null) {
+            return listOf(accessible, nonAccessible)
+        }
+        return listOf(nonAccessible)
+    }
     /**
      * Finds the nearest shelter to the user's location.
      *
@@ -341,27 +426,27 @@ class MapFragment : Fragment(), OnMapReadyCallback, TextToSpeech.OnInitListener{
      * @param shelters List of available shelters
      * @return The nearest shelter
      */
-    private fun findNearestShelter(userLocation: Location, shelters: List<Shelter>): Shelter? {
+    private fun findNearestShelter(userLocation: Location,
+                                   relevantShelters: (List<Shelter>? , needsAccess: Boolean) -> Unit) {
         Log.d(TAG, "Finding nearest shelter to user location: $userLocation")
-        var nearestShelter: Shelter? = null
-        var minDistance = Float.MAX_VALUE
 
-        for (shelter in shelters) {
-            val distance = calculateDistance(
-                userLocation.latitude,
-                userLocation.longitude,
-                shelter.lat,
-                shelter.lon
-            )
-            //Log.d(TAG, "Distance to shelter ${shelter.name}: $distance")
-            if (distance < minDistance) {
-                minDistance = distance
-                nearestShelter = shelter
+
+        val userId = FirebaseAuth.getInstance().uid ?: return
+        FirebaseFirestore.getInstance()
+            .collection("users")
+            .document(userId)
+            .get()
+            .addOnSuccessListener {
+                val user = it.toObject(User::class.java) ?: return@addOnSuccessListener
+                val needsAccess = user.accessibility != "ללא מגבלת נגישות"
+                val shelters = filterForRelevantShelter(userLocation, needsAccess)
+                Log.d("Sorted shelters", shelters.size.toString())
+                relevantShelters.invoke(shelters, needsAccess)
             }
-        }
-
-        Log.d(TAG, "Nearest shelter: $nearestShelter")
-        return nearestShelter
+            .addOnFailureListener {
+                relevantShelters.invoke(null, false)
+                Log.d("Error", it.message.toString())
+            }
     }
 
     /**
@@ -400,9 +485,35 @@ class MapFragment : Fragment(), OnMapReadyCallback, TextToSpeech.OnInitListener{
             error.printStackTrace()
         })
 
-        val requestQueue = Volley.newRequestQueue(requireContext())
+        val requestQueue = Volley.newRequestQueue(this)
         requestQueue.add(request)
     }
+
+
+    private fun requestRouteLength(origin: LatLng, dest: LatLng, callback: (Int) -> Unit) {
+        val url = getDirectionsUrl(origin, dest)
+        Log.d(TAG, "Requesting directions URL: $url")//מדפיס את כל ההנחיות,אבל זה לא מסודר לעין
+        val request = StringRequest(Request.Method.GET, url, { response ->
+            Log.d(TAG, "Directions response: $response")
+            val jsonObject = JSONObject(response)
+            val routes = jsonObject.getJSONArray("routes")
+            val legs = routes.getJSONObject(0).getJSONArray("legs")
+            val travelTimeText = legs.getJSONObject(0)
+                .getJSONObject("duration")
+                .getString("text")
+            val dur = parseDurationToSeconds(travelTimeText)
+            callback(dur)
+        }, { error ->
+            Log.e(TAG, "Volley Error: ${error.toString()}")
+            Log.e(TAG, "Volley Error Network Response: ${error.networkResponse?.statusCode}")
+            error.printStackTrace()
+        })
+
+        val requestQueue = Volley.newRequestQueue(this)
+        requestQueue.add(request)
+    }
+
+
 
     /**
      * Draws the route on the map based on the Directions API response.
@@ -411,14 +522,18 @@ class MapFragment : Fragment(), OnMapReadyCallback, TextToSpeech.OnInitListener{
      * @param googleMap The GoogleMap object to draw the route on
      */
 
+
+
     private fun drawRouteOnMap(response: String, googleMap: GoogleMap): Int {
         Log.d(TAG, "Drawing route on map")
         val jsonObject = JSONObject(response)
         val routes = jsonObject.getJSONArray("routes")
+
         val points = ArrayList<LatLng>()
         val polylineOptions = PolylineOptions()
 
         val legs = routes.getJSONObject(0).getJSONArray("legs")
+
         val steps = legs.getJSONObject(0).getJSONArray("steps")
 
         // Extract the travel time from the JSON response
@@ -429,7 +544,7 @@ class MapFragment : Fragment(), OnMapReadyCallback, TextToSpeech.OnInitListener{
         textViewTravelTime.text = "Estimated Travel Time: $travelTimeText"
 
         // אתחול הכפתור להצגת ההנחיות
-        val btnShowInstructions = theView.findViewById<Button>(R.id.btnShowInstructions)
+        val btnShowInstructions = findViewById<Button>(R.id.btnShowInstructions)
         val instructionsList = StringBuilder()  // יצירת מחרוזת להצגת כל ההנחיות
         val instructionsForSpeech = mutableListOf<String>()
 
@@ -460,7 +575,7 @@ class MapFragment : Fragment(), OnMapReadyCallback, TextToSpeech.OnInitListener{
                 if (instructionsForSpeech.isNotEmpty()) {
                     speakOutAllInstructions(instructionsForSpeech)
                 } else {
-                    Toast.makeText(requireContext(), "אין הנחיות לקריאה", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "אין הנחיות לקריאה", Toast.LENGTH_SHORT).show()
                 }
             } else {
                 btnVoiceInstructions.setImageResource(R.drawable.volume_off)
@@ -470,7 +585,7 @@ class MapFragment : Fragment(), OnMapReadyCallback, TextToSpeech.OnInitListener{
         }
 
         btnShowInstructions.setOnClickListener {
-            val dialog = AlertDialog.Builder(requireContext())
+            val dialog = AlertDialog.Builder(this)
                 .setTitle("הנחיות מסלול")
                 .setMessage(instructionsList.toString())
                 .setPositiveButton("סגור") { dialog, _ ->
@@ -502,7 +617,7 @@ class MapFragment : Fragment(), OnMapReadyCallback, TextToSpeech.OnInitListener{
 
             textToSpeech.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                 override fun onDone(utteranceId: String?) {
-                    activity?.runOnUiThread {
+                    runOnUiThread {
                         instructionsLeft-- // מפחית אחת כל פעם שקטע מוקרא
                         if (instructionsLeft == 0) {
                             // כל ההנחיות הוקראו, מחליף אייקון לרמקול מושתק

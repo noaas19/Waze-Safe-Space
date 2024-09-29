@@ -111,7 +111,9 @@ class Profile : Fragment() {
                 "accessibility" to accessibilitySpinner.selectedItem.toString()
             )
 
-            firestore.collection("users").document(userId).set(user)
+            firestore.collection("users")
+                .document(userId)
+                .set(user)
                 .addOnSuccessListener {
                     Toast.makeText(requireContext(), "השינויים נשמרו בהצלחה!", Toast.LENGTH_SHORT).show()
                 }

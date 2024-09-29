@@ -4,6 +4,7 @@
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.INTERNET" />
@@ -40,9 +41,14 @@
 
         </activity>
 
+        <activity
+            android:name=".MapFragment"
+            android:exported="true">
+
+        </activity>
         <meta-data
-            android:name="com.google.android.geo.API_KEY"
-            android:value="@string/google_map_api_key" />
+            android:name="com.google.android.maps.v2.API_KEY"
+            android:value="@string/google_map_api_key"  />
         <meta-data
             android:name="com.google.firebase.database.DatabaseApp"
             android:value="true" />

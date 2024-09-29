@@ -19,6 +19,8 @@ import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentContainerView
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
+import com.google.gson.Gson
 import com.wazesafespace.databinding.ActivityMain2Binding
 
 sealed class CurrentScreen {
@@ -35,7 +37,6 @@ class MainActivity : AppCompatActivity() {
     private val FINE_PERMISSION_CODE = 1
     lateinit var binding: ActivityMain2Binding
     private lateinit var alertReceiver: BroadcastReceiver
-    private lateinit var mapFragment: MapFragment
     private var currentScreen : CurrentScreen = CurrentScreen.Home
     private fun requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {  // API 33
@@ -45,17 +46,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun startForegroundService() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(Intent(this, MyForegroundService::class.java))
-        } else {
-            startService(Intent(this, MyForegroundService::class.java))
-        }
 
+    private fun startForegroundService() {
+        startForegroundService(Intent(this, MyForegroundService::class.java))
         Log.d("MainActivity","startForegroundService called")
     }
 
     private fun showBackgroundRunDialog() {
+        Log.d("showBackgroundRunDialog", "showBackgroundRunDialog")
         AlertDialog.Builder(this)
             .setTitle("הפעלת ריצה ברקע")
             .setMessage("האפליקציה תרוץ ברקע כדי להמשיך לעקוב אחרי המיקום שלך ולוודא שאתה מקבל את כל ההתרעות בזמן אמת.")
@@ -129,15 +127,17 @@ class MainActivity : AppCompatActivity() {
 
 
     fun findShelterManually(fromManualAddress: String? = null) {
-        findViewById<FragmentContainerView>(R.id.fragmentContainerMap).visibility = View.VISIBLE
-        mapFragment.findShelter(ShelterEvents.ShelterManually(
-            currentLocation = true,
-            address = fromManualAddress
-        ))
+        val intent = Intent(this, MapFragment::class.java)
+        val gson = Gson()
+        intent.putExtra("event", gson.toJson(ShelterEvent(
+            type="ShelterManually",
+            address = fromManualAddress,
+            currentLocation = true
+        )))
+        startActivity(intent)
     }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        mapFragment = MapFragment()
         binding = ActivityMain2Binding.inflate(layoutInflater)
         setContentView(binding.root)
         // טוענים את הפרגמנט הראשוני עם הלוגו והכפתורים
@@ -155,14 +155,39 @@ class MainActivity : AppCompatActivity() {
                 arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
                 FINE_PERMISSION_CODE
             )
-            return
         }
 
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+            ||ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.FOREGROUND_SERVICE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(
+                    Manifest.permission.FOREGROUND_SERVICE_LOCATION,
+                    Manifest.permission.ACCESS_FINE_LOCATION),
+                FINE_PERMISSION_CODE
+            )
+            return
+        }
+        else {
+            requestForegroundService()
+        }
+
+    }
+
+    fun requestForegroundService() {
         val sharedPreferences = getSharedPreferences("app_preferences", MODE_PRIVATE)
         val isBackgroundApproved = sharedPreferences.getBoolean("isBackgroundApproved", false)
 
         // בדיקת האם המשתמש אישר כבר את הריצה ברקע
         if (isBackgroundApproved) {
+            Log.d("isBackgroundApproved","isBackgroundApproved")
             // נוודא שהשירות לא פועל ואז נפעיל אותו
             if (!MyForegroundService.isServiceRunning) {
                 startForegroundService()
@@ -174,35 +199,6 @@ class MainActivity : AppCompatActivity() {
             // המשתמש לא אישר ריצה ברקע, מבקשים אישור
             showBackgroundRunDialog()
         }
-
-
-        val fragmentManager = supportFragmentManager
-        val fragmentTransaction = fragmentManager.beginTransaction()
-        fragmentTransaction.replace(R.id.fragmentContainerMap, mapFragment)
-        fragmentTransaction.commit()
-
-        // Define the BroadcastReceiver
-        alertReceiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                // Extract the message from the intent
-                /*val message = intent?.getStringExtra("message")
-                message?.let {
-                    // Handle the message (e.g., update the UI)
-                    Log.d("MapFragment", "Received message: $it")
-                    Toast.makeText(this@MainActivity, it, Toast.LENGTH_LONG).show()
-                    // You can also update TextView or any other UI elements here
-                }*/
-                //mapFragment.callFindShelterManually = true
-                //mapFragment.update()
-                Log.d("onReceive", "Recevied message from broadcast recevier")
-                findViewById<FragmentContainerView>(R.id.fragmentContainerMap).visibility = View.VISIBLE
-                mapFragment.findShelter(ShelterEvents.ShelterFromNotification)
-            }
-        }
-
-        // Register the BroadcastReceiver with the intent filter
-        val intentFilter = IntentFilter("com.example.ACTION_SEND_MESSAGE")
-        registerReceiver(alertReceiver, intentFilter, RECEIVER_NOT_EXPORTED)
     }
 
     private fun replaceFragment(fragment: Fragment) {
@@ -221,16 +217,17 @@ class MainActivity : AppCompatActivity() {
 
         when (requestCode) {
             FINE_PERMISSION_CODE -> {
+
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    requestForegroundService()
                     Log.d("Permission", "Location permission granted.")
-                    mapFragment.getLocation()
                 } else {
                     Log.d("Permission", "Location permission is denied.")
-                    Toast.makeText(
-                        this,
-                        "Location permission is denied, please allow the permission",
-                        Toast.LENGTH_SHORT
-                    ).show()
+//                    Toast.makeText(
+//                        this,
+//                        "Location permission is denied, please allow the permission",
+//                        Toast.LENGTH_SHORT
+//                    ).show()
                 }
             }
             NOTIFICATION_PERMISSION_CODE -> {

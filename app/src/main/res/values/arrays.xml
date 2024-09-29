@@ -6,7 +6,7 @@
     </string-array>
 
     <string-array name="accessibility_options">
-        <item>נגיש</item>
-        <item>לא נגיש</item>
+        <item>ללא מגבלת נגישות</item>
+        <item>מוגבל בנגישות</item>
     </string-array>
 </resources>

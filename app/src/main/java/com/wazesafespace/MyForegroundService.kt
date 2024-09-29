@@ -1,13 +1,18 @@
 package com.wazesafespace
+import com.wazesafespace.MainActivity
+import com.wazesafespace.MapFragment
+import com.wazesafespace.R
 
 import android.app.Service
 import android.content.Intent
 import android.os.IBinder
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.ContentValues.TAG
 import android.content.Context
+import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -16,6 +21,7 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
+import com.google.gson.Gson
 
 class MyForegroundService : Service() {
 
@@ -66,22 +72,23 @@ class MyForegroundService : Service() {
         // יצירת ערוץ ההתראה (Notification Channel)
         createNotificationChannel()
 
+
+        return START_STICKY
+    }
+
+    override fun onCreate() {
+        super.onCreate()
         // יצירת ההתראה
-        val notificationIntent = Intent(this, MapFragment::class.java)
-        val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE)
 
         val notification = NotificationCompat.Builder(this, "CHANNEL_ID")
             .setContentTitle("Service Running")
             .setContentText("Your app is running in the background")
             .setSmallIcon(R.drawable.ic_launcher_foreground)  //לייבא אייקון מתאים
-            .setContentIntent(pendingIntent)
             .setOngoing(true)
             .build()
 
-        // הפעלת השירות כ-Foreground Service
         startForeground(1, notification)
         Log.d("MyForegroundService", "Notification created and service started")
-        return START_STICKY
     }
 
     // פונקציה ליצירת ערוץ ההתראה
@@ -100,30 +107,23 @@ class MyForegroundService : Service() {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         val channelId = "CHANNEL_ID"
+        val gson = Gson()
 
         // כוונה שתיפתח כאשר המשתמש ילחץ על ההתראה
         val intent = Intent(this, MapFragment::class.java).apply {
             putExtra("action", "guideUserByLocation") // מעבירים פרמטר שמעיד על הפעולה
+            putExtra("event", gson.toJson(ShelterEvent(
+                type="ShelterNotification",
+                currentLocation = false
+            )))
         }
-
         // PendingIntent עם FLAG_UPDATE_CURRENT כדי לוודא שהכוונה מתעדכנת
-        /*val pendingIntent = PendingIntent.getActivity(
+        val pendingIntent = PendingIntent.getActivity(
             this,
             0,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )*/
-        val broadcastIntent = Intent("com.example.ACTION_SEND_MESSAGE")
-        broadcastIntent.putExtra("message", "התקבלה התראה לבאר שבע, לחץ כאן לקבלת הנחיות.")
-
-// Create a PendingIntent that sends the broadcast
-        val pendingIntent = PendingIntent.getBroadcast(
-            this,
-            0,
-            broadcastIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-
 
         // בניית ההתראה
         val notification = NotificationCompat.Builder(this, channelId)

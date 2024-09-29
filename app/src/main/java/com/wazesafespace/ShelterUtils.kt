@@ -6,7 +6,11 @@ import org.json.JSONException
 import java.io.IOException
 import java.nio.charset.StandardCharsets
 
-data class Shelter(val name: String, val lat: Double, val lon: Double)
+data class Shelter(val name: String = "",
+                   val lat: Double = 0.0,
+                   val lon: Double = 0.0,
+                   var hasStairs: Boolean = false
+)
 
 object ShelterUtils {
     fun loadSheltersFromAssets(context: Context, fileName: String): List<Shelter> {
