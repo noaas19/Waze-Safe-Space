@@ -1,6 +1,7 @@
 package com.wazesafespace
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.location.Location
@@ -11,6 +12,8 @@ import android.speech.tts.UtteranceProgressListener
 import android.text.Html
 import android.util.Log
 import android.view.Gravity
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
@@ -19,6 +22,8 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.fragment.app.FragmentContainerView
+import androidx.lifecycle.lifecycleScope
 import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.StringRequest
@@ -43,6 +48,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.gson.Gson
 import com.google.maps.android.PolyUtil
+import kotlinx.coroutines.launch
 
 
 import org.json.JSONObject
@@ -259,6 +265,23 @@ class MapFragment : AppCompatActivity(), OnMapReadyCallback, TextToSpeech.OnInit
             }
     }
 
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.menu_nav_back, menu)
+        return super.onCreateOptionsMenu(menu)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+
+        when(item.itemId) {
+            R.id.menuBack -> {
+                finish()
+            }
+        }
+
+        return super.onOptionsItemSelected(item)
+    }
+
     fun onLocation(
         location: Location,
         showDialog: Boolean,
@@ -270,6 +293,9 @@ class MapFragment : AppCompatActivity(), OnMapReadyCallback, TextToSpeech.OnInit
             val shelters = nearestShelters ?: return@findNearestShelter
             getBestOption(location, shelters, needsAccess) { nearestShelter ->
 
+                lifecycleScope.launch {
+                    val saved = ShelterUtils.saveShelter(this@MapFragment, nearestShelter)
+                }
                 val origin = LatLng(location.latitude, location.longitude)
                 val dest = LatLng(nearestShelter.lat, nearestShelter.lon)
                 Log.d("Nearst location", "XXx");

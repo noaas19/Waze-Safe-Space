@@ -22,6 +22,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import com.google.gson.Gson
 import com.wazesafespace.databinding.ActivityMain2Binding
+import java.util.UUID
 
 sealed class CurrentScreen {
     data object Home : CurrentScreen()
@@ -124,6 +125,7 @@ class MainActivity : AppCompatActivity() {
 
         return super.onOptionsItemSelected(item)
     }
+
 
 
     fun findShelterManually(fromManualAddress: String? = null) {
