@@ -1,59 +1,53 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
     android:layout_height="match_parent"
     xmlns:tools="http://schemas.android.com/tools"
     tools:context=".Home">
 
-    <!-- לוגו -->
-    <ImageView
-        android:id="@+id/imageViewLogo"
-        android:layout_width="262dp"
-        android:layout_height="248dp"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="32dp"
-        android:src="@drawable/logo" />
 
-    <!-- כפתור למציאת מרחב מוגן -->
-    <Button
-        android:id="@+id/buttonFindSafeSpace"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/imageViewLogo"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="32dp"
-        android:text="מצא לי מרחב מוגן"
-        android:textSize="18sp" />
+
+    <LinearLayout
+        android:gravity="center"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <!-- לוגו -->
+        <ImageView
+            android:layout_marginBottom="120dp"
+            android:id="@+id/imageViewLogo"
+            android:layout_width="262dp"
+            android:layout_height="248dp"
+            android:layout_centerHorizontal="true"
+            android:src="@drawable/logo" />
+
+        <!-- כפתור למציאת מרחב מוגן -->
+        <Button
+            android:id="@+id/buttonFindSafeSpace"
+            android:backgroundTint="@color/black"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="24dp"
+            android:paddingVertical="8dp"
+            android:layout_below="@id/imageViewLogo"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="32dp"
+            android:text="מצא לי מרחב מוגן"
+            android:textSize="18sp" />
+
+    </LinearLayout>
+
 
     <!-- כפתור להזנת מיקום ידנית -->
-    <Button
-        android:id="@+id/buttonEnterLocationManually"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/buttonFindSafeSpace"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="16dp"
-        android:text="הזן מיקום ידנית"
-        android:textSize="18sp" />
 
     <!-- כפתור להוספת מקלט חדש -->
-    <Button
-        android:id="@+id/buttonAddShelter"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/buttonEnterLocationManually"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="16dp"
-        android:text="הוספת מקלט חדש"
-        android:textSize="18sp" />
 
     <!-- כפתור HOME (נשנה את השם מאוחר יותר) -->
-    <Button
-        android:id="@+id/newBtn"
-        android:layout_width="150dp"
-        android:layout_height="60dp"
-        android:layout_centerHorizontal="true"
-        android:layout_alignParentBottom="true"
-        android:backgroundTint="@color/black"
-        android:text="NEW SCREEN"/>
-</RelativeLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

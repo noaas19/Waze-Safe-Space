@@ -2,51 +2,100 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:padding="16dp"
+    android:background="@drawable/blue_background"
     android:gravity="center">
 
-    <EditText
-        android:id="@+id/emailEditText"
+    <!-- לוגו -->
+    <ImageView
+        android:id="@+id/imageViewLogo"
+        android:layout_width="240dp"
+        android:layout_height="200dp"
+        android:src="@drawable/logo_register"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="30dp" />
+
+    <LinearLayout
+        android:gravity="center"
+        android:padding="32dp"
+        android:background="@drawable/transparent_rectangle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:minHeight="48dp"
-        android:hint="Email"
-        android:inputType="textEmailAddress"
-        android:padding="10dp" />
-
-    <EditText
-        android:id="@+id/passwordEditText"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:minHeight="48dp"
-        android:hint="Password"
-        android:inputType="textPassword"
-        android:padding="10dp"
-        android:layout_marginTop="16dp" />
-
-    <Button
-        android:id="@+id/loginButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Login"
-        android:layout_marginTop="16dp" />
+        android:orientation="vertical">
 
 
-    <Button
-        android:id="@+id/noAccount"
-        android:layout_width="wrap_content"
-        android:textColor="@color/black"
-        android:background="@android:color/transparent"
-        android:layout_height="wrap_content"
-        android:text="Don't have an account?  Create one now"
-        android:layout_marginTop="16dp" />
+       <com.google.android.material.textfield.TextInputLayout
+           android:hint="Email"
+           app:boxCornerRadiusBottomEnd="32dp"
+           app:boxCornerRadiusBottomStart="32dp"
+           app:boxCornerRadiusTopEnd="32dp"
+           app:boxCornerRadiusTopStart="32dp"
 
-    <TextView
-        android:id="@+id/errorTextView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textColor="@android:color/holo_red_light"
-        android:visibility="gone"
-        android:layout_marginTop="16dp" />
+           app:boxBackgroundColor="@color/white"
+           android:layout_width="match_parent"
+           android:layout_height="wrap_content">
+           <com.google.android.material.textfield.TextInputEditText
+               android:id="@+id/emailEditText"
+               android:drawablePadding="16dp"
+               android:drawableStart="@drawable/baseline_email_24"
+               android:layout_width="match_parent"
+               android:layout_height="wrap_content"
+               android:minHeight="48dp"
+               android:inputType="textEmailAddress"
+               android:padding="10dp" />
+       </com.google.android.material.textfield.TextInputLayout>
+
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:hint="Password"
+            android:layout_marginTop="8dp"
+            app:boxCornerRadiusBottomEnd="32dp"
+            app:boxCornerRadiusBottomStart="32dp"
+            app:boxCornerRadiusTopEnd="32dp"
+            app:boxCornerRadiusTopStart="32dp"
+
+            app:boxBackgroundColor="@color/white"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/passwordEditText"
+
+                android:drawablePadding="16dp"
+                android:drawableStart="@drawable/baseline_key_24"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:inputType="textPassword"
+                android:padding="10dp" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <Button
+            android:id="@+id/loginButton"
+            android:backgroundTint="@color/black"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Login"
+            android:layout_marginHorizontal="64dp"
+            android:layout_marginTop="16dp" />
+
+
+        <Button
+            android:id="@+id/noAccount"
+            android:layout_width="wrap_content"
+            android:textColor="@color/black"
+            android:background="@android:color/transparent"
+            android:layout_height="wrap_content"
+            android:text="Don't have an account?  Create one now"
+            android:layout_marginTop="16dp" />
+
+        <TextView
+            android:id="@+id/errorTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@android:color/holo_red_light"
+            android:visibility="gone"
+            android:layout_marginTop="16dp" />
+    </LinearLayout>
 </LinearLayout>

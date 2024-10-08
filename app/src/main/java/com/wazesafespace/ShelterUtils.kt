@@ -88,12 +88,26 @@ object ShelterUtils {
 
         FirebaseDatabase.getInstance()
             .getReference("shelters")
-            .equalTo("id", savedShelter.shetlerId)
             .get()
             .addOnSuccessListener {  shelterDoc ->
-                val shelter = shelterDoc.getValue(Shelter::class.java) ?:return@addOnSuccessListener
-                if(shelter.reports >= 1 && !shelter.hasStairs) {
-                    shelterDoc.ref.updateChildren(mapOf("hasStairs" to true, "reports" to shelter.reports + 1))
+
+                val shelters = shelterDoc.children.mapNotNull {
+                    val doc = it.getValue(Shelter::class.java) ?: return@mapNotNull null
+                    Pair(doc, it)
+                }
+                val shelter = shelters.firstOrNull { it.first.id == savedShelter.shetlerId } ?: return@addOnSuccessListener
+                if(shelter.first.reports >= 1 && !shelter.first.hasStairs) {
+                    Log.d("addShelterReport", "shelter.reports >= 1 && !shelter.hasStairs")
+                    shelter.second.ref.updateChildren(mapOf("hasStairs" to true, "reports" to shelter.first.reports + 1))
+                }
+                else {
+                    shelter.second.ref.updateChildren(mapOf("reports" to shelter.first.reports + 1))
+                }
+                val hasStairsNew = if(shelter.first.reports  == 1) {
+                    true
+                }
+                else {
+                    false
                 }
 
                 FirebaseDatabase.getInstance()
@@ -101,12 +115,15 @@ object ShelterUtils {
                     .child(FirebaseAuth.getInstance().uid!!)
                     .child("shelters")
                     .child(savedShelter.id)
-                    .updateChildren(mapOf("reportAdded"  to true))
+                    .updateChildren(mapOf("reportAdded" to true, "hasStairs" to hasStairsNew))
                     .addOnSuccessListener {
                         savedShelter.reportAdded = true
                         callback(savedShelter)
                         Log.d("Updated", "Updated shetler")
                     }
+            }
+            .addOnFailureListener {
+                it.printStackTrace()
             }
     }
 

@@ -11,17 +11,10 @@ class Home : Fragment(R.layout.activity_home) {
         super.onViewCreated(view, savedInstanceState)
 
         // הגדרת לחיצה על הכפתור מתוך הפרגמנט
-        val newBtn: Button = view.findViewById(R.id.newBtn)
         view.findViewById<Button>(R.id.buttonFindSafeSpace)
             .setOnClickListener {
                 val activity = requireActivity() as? MainActivity ?: return@setOnClickListener
                 activity.findShelterManually()
             }
-        newBtn.setOnClickListener {
-            // החלפת פרגמנט מתוך הפרגמנט
-            activity?.supportFragmentManager?.beginTransaction()
-                ?.replace(R.id.fragmentContainer, CleanFragment())
-                ?.commit()
-        }
     }
 }

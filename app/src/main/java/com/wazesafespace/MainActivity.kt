@@ -12,6 +12,8 @@ import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.widget.ImageView
+import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -76,10 +78,7 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-        menuInflater.inflate(R.menu.menu_nav, menu)
-        return super.onCreateOptionsMenu(menu)
-    }
+
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         findViewById<FragmentContainerView>(R.id.fragmentContainerMap).visibility = View.GONE
@@ -142,6 +141,13 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMain2Binding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        binding.menuBtn.setOnClickListener {
+            val popUpMenu = PopupMenu(this@MainActivity, it)
+            popUpMenu.inflate(R.menu.menu_nav)
+            popUpMenu.setOnMenuItemClickListener(::onOptionsItemSelected)
+            popUpMenu.show()
+        }
         // טוענים את הפרגמנט הראשוני עם הלוגו והכפתורים
         replaceFragment(Home())
 
@@ -181,6 +187,8 @@ class MainActivity : AppCompatActivity() {
             requestForegroundService()
         }
 
+
+
     }
 
     fun requestForegroundService() {
@@ -208,8 +216,10 @@ class MainActivity : AppCompatActivity() {
         val fragmentTransaction = fragmentManager.beginTransaction()
         fragmentTransaction.replace(R.id.fragmentContainer, fragment)
         fragmentTransaction.commit()
+        isInHome = fragment is Home
     }
 
+    var isInHome = true
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
@@ -218,7 +228,7 @@ class MainActivity : AppCompatActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
         when (requestCode) {
-            FINE_PERMISSION_CODE -> {
+    FINE_PERMISSION_CODE -> {
 
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     requestForegroundService()
@@ -246,6 +256,15 @@ class MainActivity : AppCompatActivity() {
                     ).show()
                 }
             }
+        }
+    }
+
+    override fun onBackPressed() {
+        if(!isInHome) {
+            currentScreen = CurrentScreen.Home
+            replaceFragment(Home())
+        } else {
+            super.onBackPressed()
         }
     }
 }

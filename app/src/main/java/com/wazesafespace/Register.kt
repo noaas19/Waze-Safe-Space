@@ -25,13 +25,12 @@ class Register : Fragment(R.layout.register) {
         // אתחול FirebaseAuth
         auth = FirebaseAuth.getInstance()
 
-
         val toLogin = view.findViewById<Button>(R.id.alreadyHaveAccount)
         toLogin.setOnClickListener {
             findNavController().popBackStack()
         }
         // אתחול רכיבי ממשק
-        emailEditText = view.findViewById(R.id.editTextEmail)
+        emailEditText = view.findViewById(R.id.emailEditText)
         passwordEditText = view.findViewById(R.id.editTextPassword)
         registerButton = view.findViewById(R.id.buttonRegister)
 
@@ -63,6 +62,7 @@ class Register : Fragment(R.layout.register) {
                         ))
                     // המשתמש נרשם בהצלחה
                     Toast.makeText(activity, "נרשמת בהצלחה!", Toast.LENGTH_SHORT).show()
+
                 } else {
                     // שגיאה בהרשמה
                     task.exception?.let {

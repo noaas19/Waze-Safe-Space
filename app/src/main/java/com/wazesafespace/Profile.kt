@@ -17,7 +17,6 @@ class Profile : Fragment() {
     private lateinit var lastNameEditText: EditText
     private lateinit var emailEditText: EditText
     private lateinit var birthYearEditText: EditText
-    private lateinit var fitnessLevelSpinner: Spinner
     private lateinit var accessibilitySpinner: Spinner
     private lateinit var saveButton: Button
 
@@ -36,7 +35,6 @@ class Profile : Fragment() {
         lastNameEditText = view.findViewById(R.id.editTextLastName)
         emailEditText = view.findViewById(R.id.editTextEmail)
         birthYearEditText = view.findViewById(R.id.editTextBirthYear)
-        fitnessLevelSpinner = view.findViewById(R.id.spinnerFitnessLevel)
         accessibilitySpinner = view.findViewById(R.id.spinnerAccessibility)
         saveButton = view.findViewById(R.id.buttonSave)
 
@@ -56,13 +54,6 @@ class Profile : Fragment() {
 
     private fun initSpinners() {
         // ספינר רמת כושר
-        val fitnessAdapter = ArrayAdapter.createFromResource(
-            requireContext(),
-            R.array.fitness_levels,
-            android.R.layout.simple_spinner_item
-        )
-        fitnessAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        fitnessLevelSpinner.adapter = fitnessAdapter
 
         // ספינר נגישות
         val accessibilityAdapter = ArrayAdapter.createFromResource(
@@ -87,9 +78,6 @@ class Profile : Fragment() {
                         birthYearEditText.setText(document.getString("birthYear"))
 
                         // הגדרת הספינר לפי הערך הנוכחי
-                        val fitnessLevel = document.getString("fitnessLevel")
-                        val fitnessIndex = resources.getStringArray(R.array.fitness_levels).indexOf(fitnessLevel)
-                        fitnessLevelSpinner.setSelection(fitnessIndex)
 
                         val accessibility = document.getString("accessibility")
                         val accessibilityIndex = resources.getStringArray(R.array.accessibility_options).indexOf(accessibility)
@@ -107,7 +95,6 @@ class Profile : Fragment() {
                 "lastName" to lastNameEditText.text.toString(),
                 "email" to emailEditText.text.toString(),
                 "birthYear" to birthYearEditText.text.toString(),
-                "fitnessLevel" to fitnessLevelSpinner.selectedItem.toString(),
                 "accessibility" to accessibilitySpinner.selectedItem.toString()
             )
 

@@ -1,47 +1,96 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="16dp"
+    android:background="@drawable/blue_background"
+    android:gravity="center">
 
-    <EditText
-        android:id="@+id/editTextEmail"
+    <!-- לוגו -->
+    <ImageView
+        android:layout_marginBottom="20dp"
+        android:id="@+id/imageViewLogo"
+        android:layout_width="240dp"
+        android:layout_height="200dp"
+        android:layout_centerHorizontal="true"
+        android:src="@drawable/logo_register" />>
+
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="הכנס אימייל"
-        android:inputType="textEmailAddress"
-        android:padding="12dp"
-        android:layout_marginBottom="12dp"
-        />
+        android:background="@drawable/transparent_rectangle"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="32dp">
 
-    <EditText
-        android:id="@+id/editTextPassword"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="הכנס סיסמה"
-        android:inputType="textPassword"
-        android:padding="12dp"
-        android:layout_marginBottom="12dp"
-      />
 
-    <Button
-        android:id="@+id/buttonRegister"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="הרשם"
-        android:padding="12dp"
-        android:background="@color/primaryColor"
-        android:textColor="@android:color/white"/>
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Email"
+            app:boxBackgroundColor="@color/white"
+            app:boxCornerRadiusBottomEnd="32dp"
 
-    <Button
-        android:layout_gravity="center"
-        android:id="@+id/alreadyHaveAccount"
-        android:layout_width="wrap_content"
-        android:textColor="@color/black"
-        android:background="@android:color/transparent"
-        android:layout_height="wrap_content"
-        android:text="Already have an account?  Sign in now"
-        android:layout_marginTop="16dp" />
+            app:boxCornerRadiusBottomStart="32dp"
+            app:boxCornerRadiusTopEnd="32dp"
+            app:boxCornerRadiusTopStart="32dp">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/emailEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:drawableStart="@drawable/baseline_email_24"
+                android:drawablePadding="16dp"
+                android:inputType="textEmailAddress"
+                android:minHeight="48dp"
+                android:padding="10dp" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="Password"
+            app:boxBackgroundColor="@color/white"
+            app:boxCornerRadiusBottomEnd="32dp"
+
+            app:boxCornerRadiusBottomStart="32dp"
+            app:boxCornerRadiusTopEnd="32dp"
+            app:boxCornerRadiusTopStart="32dp">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/editTextPassword"
+
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:drawableStart="@drawable/baseline_key_24"
+                android:drawablePadding="16dp"
+                android:inputType="textPassword"
+                android:minHeight="48dp"
+                android:padding="10dp" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <Button
+            android:id="@+id/buttonRegister"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="64dp"
+            android:layout_marginTop="16dp"
+            android:backgroundTint="@color/black"
+            android:text="Register" />
+
+
+        <Button
+            android:id="@+id/alreadyHaveAccount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="@android:color/transparent"
+            android:text="Already have an account?  Sign in now"
+            android:textColor="@color/black" />
+
+    </LinearLayout>
 </LinearLayout>

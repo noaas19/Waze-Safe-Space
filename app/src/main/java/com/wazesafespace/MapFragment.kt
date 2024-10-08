@@ -17,6 +17,8 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
+import android.widget.ImageView
+import android.widget.PopupMenu
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -98,7 +100,13 @@ class MapFragment : AppCompatActivity(), OnMapReadyCallback, TextToSpeech.OnInit
         val mapFragment = supportFragmentManager
             .findFragmentById(R.id.mapFragment) as SupportMapFragment
         mapFragment.getMapAsync(this) // initialize map after getting location
-
+        val menuIcon = findViewById<ImageView>(R.id.menuBtn)
+        menuIcon.setOnClickListener {
+            val popUpMenu = PopupMenu(this@MapFragment, it)
+            popUpMenu.inflate(R.menu.menu_nav_back)
+            popUpMenu.setOnMenuItemClickListener(::onOptionsItemSelected)
+            popUpMenu.show()
+        }
 
     }
 
@@ -266,10 +274,6 @@ class MapFragment : AppCompatActivity(), OnMapReadyCallback, TextToSpeech.OnInit
     }
 
 
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-        menuInflater.inflate(R.menu.menu_nav_back, menu)
-        return super.onCreateOptionsMenu(menu)
-    }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
 
