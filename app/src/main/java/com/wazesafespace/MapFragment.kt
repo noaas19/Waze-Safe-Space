@@ -80,7 +80,11 @@ class MapFragment : AppCompatActivity(), OnMapReadyCallback, TextToSpeech.OnInit
     private var isMuted = true
     private lateinit var btnVoiceInstructions: ImageButton
 
-
+    /**
+     * Handles the map initialization and sets up the UI elements.
+     * Also loads the shelters and requests location updates.
+     * @param savedInstanceState The saved instance state (if any).
+     */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.map_fragment)
@@ -107,6 +111,9 @@ class MapFragment : AppCompatActivity(), OnMapReadyCallback, TextToSpeech.OnInit
         }
     }
 
+    /**
+     * Cleans up resources when the activity is destroyed, specifically stopping the TextToSpeech engine.
+     */
     override fun onDestroy() {
         if (textToSpeech != null) {
             textToSpeech.stop()
@@ -115,6 +122,10 @@ class MapFragment : AppCompatActivity(), OnMapReadyCallback, TextToSpeech.OnInit
         super.onDestroy()
     }
 
+    /**
+     * Handles the event to find the nearest shelter based on the event type.
+     * @param event The shelter event containing the type, current location flag, and optional address.
+     */
     fun findShelter(event: ShelterEvent) {
 
         when (event.type) {
@@ -145,8 +156,9 @@ class MapFragment : AppCompatActivity(), OnMapReadyCallback, TextToSpeech.OnInit
 
 
     /**
-     * Gets the location of the device.
+     * Gets the current location of the device using FusedLocationProviderClient.
      * If location permissions are not granted, requests them.
+     * @param callback Function to call with the location once obtained.
      */
     fun getLocation(callback: (Location) -> Unit = {}) {
         Log.d(TAG, "getLocation called")
@@ -232,6 +244,11 @@ class MapFragment : AppCompatActivity(), OnMapReadyCallback, TextToSpeech.OnInit
         }
     }
 
+    /**
+     * Called when the map is ready for use.
+     * Loads shelter markers and retrieves shelter data from Firebase.
+     * @param googleMap The GoogleMap object ready for use.
+     */
     override fun onMapReady(googleMap: GoogleMap) {
         mGoogleMap = googleMap
         isMapReady = true
@@ -260,6 +277,11 @@ class MapFragment : AppCompatActivity(), OnMapReadyCallback, TextToSpeech.OnInit
             }
     }
 
+    /**
+     * Handles the selection of options from the menu, such as navigating back.
+     * @param item The selected menu item.
+     * @return True if the item was handled, false otherwise.
+     */
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
 
         when (item.itemId) {
@@ -270,6 +292,13 @@ class MapFragment : AppCompatActivity(), OnMapReadyCallback, TextToSpeech.OnInit
         return super.onOptionsItemSelected(item)
     }
 
+    /**
+     * Handles the user's location and finds the nearest shelter.
+     * Optionally displays a dialog if the route exceeds the limited shielding time.
+     * @param location The user's current location.
+     * @param showDialog Whether to show the dialog.
+     * @param limitedShieldingTime Time limit for safe routes (in seconds).
+     */
     fun onLocation(
         location: Location,
         showDialog: Boolean,
@@ -329,6 +358,13 @@ class MapFragment : AppCompatActivity(), OnMapReadyCallback, TextToSpeech.OnInit
          }*/
     }
 
+    /**
+     * Finds the best shelter option based on accessibility needs and distance.
+     * @param currentLocation The user's current location.
+     * @param nearestShelters List of the nearest shelters.
+     * @param needsAccess Whether accessibility is needed.
+     * @param callback Callback to return the selected shelter.
+     */
     private fun getBestOption(
         currentLocation: Location,
         nearestShelters: List<Shelter>,
@@ -397,9 +433,13 @@ class MapFragment : AppCompatActivity(), OnMapReadyCallback, TextToSpeech.OnInit
         return results[0]
     }
 
-
-    // returns 2 shelters at most (based on accessibility)
-    // sorted by distance
+    /**
+     * Filters shelters based on accessibility and sorts them by distance to the user's location.
+     * Returns up to two shelters based on the accessibility requirement.
+     * @param userLocation The user's current location.
+     * @param withAccessibility Whether accessibility is required.
+     * @return List of up to two shelters.
+     */
     private fun filterForRelevantShelter(
         userLocation: Location,
         withAccessibility: Boolean
@@ -426,11 +466,9 @@ class MapFragment : AppCompatActivity(), OnMapReadyCallback, TextToSpeech.OnInit
     }
 
     /**
-     * Finds the nearest shelter to the user's location.
-     *
-     * @param userLocation The user's current location
-     * @param shelters List of available shelters
-     * @return The nearest shelter
+     * Finds the nearest shelter to the user's current location and filters shelters by accessibility.
+     * @param userLocation The user's current location.
+     * @param relevantShelters Callback to return the list of relevant shelters and accessibility need.
      */
     private fun findNearestShelter(
         userLocation: Location,
@@ -457,11 +495,10 @@ class MapFragment : AppCompatActivity(), OnMapReadyCallback, TextToSpeech.OnInit
     }
 
     /**
-     * Creates a URL for the Google Directions API request.
-     *
-     * @param origin The starting location
-     * @param dest The destination location
-     * @return The URL for the API request
+     * Constructs the URL for the Google Directions API request.
+     * @param origin The starting location.
+     * @param dest The destination location.
+     * @return The constructed URL.
      */
     private fun getDirectionsUrl(origin: LatLng, dest: LatLng): String {
         val strOrigin = "origin=${origin.latitude},${origin.longitude}"
@@ -474,11 +511,10 @@ class MapFragment : AppCompatActivity(), OnMapReadyCallback, TextToSpeech.OnInit
 
 
     /**
-     * Sends a request to the Google Directions API.
-     *
-     * @param origin The starting location
-     * @param dest The destination location
-     * @param callback The callback to handle the API response
+     * Sends a request to the Google Directions API to get the directions from origin to destination.
+     * @param origin The starting location.
+     * @param dest The destination location.
+     * @param callback The callback to handle the API response.
      */
     private fun requestDirections(origin: LatLng, dest: LatLng, callback: (String) -> Unit) {
         val url = getDirectionsUrl(origin, dest)
@@ -496,7 +532,12 @@ class MapFragment : AppCompatActivity(), OnMapReadyCallback, TextToSpeech.OnInit
         requestQueue.add(request)
     }
 
-
+    /**
+     * Requests the length of a route between two locations using the Google Directions API.
+     * @param origin The starting location.
+     * @param dest The destination location.
+     * @param callback The callback to handle the route length.
+     */
     private fun requestRouteLength(origin: LatLng, dest: LatLng, callback: (Int) -> Unit) {
         val url = getDirectionsUrl(origin, dest)
         //Log.d(TAG, "Requesting directions URL: $url")
@@ -519,14 +560,13 @@ class MapFragment : AppCompatActivity(), OnMapReadyCallback, TextToSpeech.OnInit
         val requestQueue = Volley.newRequestQueue(this)
         requestQueue.add(request)
     }
-
     /**
-     * Draws the route on the map based on the Directions API response.
-     *
-     * @param response The response from the Directions API
-     * @param googleMap The GoogleMap object to draw the route on
+     * Draws the route on the Google Map based on the Directions API response.
+     * Also updates the travel time and handles voice instructions and dialog display.
+     * @param response The response from the Directions API.
+     * @param googleMap The GoogleMap object to draw the route on.
+     * @return The travel time in seconds.
      */
-
     private fun drawRouteOnMap(response: String, googleMap: GoogleMap): Int {
         Log.d(TAG, "Drawing route on map")
         val jsonObject = JSONObject(response)
@@ -611,6 +651,10 @@ class MapFragment : AppCompatActivity(), OnMapReadyCallback, TextToSpeech.OnInit
         return travelTimeInSeconds
     }
 
+    /**
+     * Uses TextToSpeech to speak out all route instructions.
+     * @param instructions The list of instructions to be spoken.
+     */
     private fun speakOutAllInstructions(instructions: List<String>) {
         if (isTtsInitialized) {
             var instructionsLeft = instructions.size // סופר כמה הנחיות נשארו לקריאה
@@ -647,7 +691,10 @@ class MapFragment : AppCompatActivity(), OnMapReadyCallback, TextToSpeech.OnInit
         }
     }
 
-
+    /**
+     * Initializes the TextToSpeech engine and sets the language to Hebrew.
+     * @param status The initialization status.
+     */
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
             val result = textToSpeech.setLanguage(Locale("he"))
@@ -661,7 +708,11 @@ class MapFragment : AppCompatActivity(), OnMapReadyCallback, TextToSpeech.OnInit
         }
     }
 
-
+    /**
+     * Parses a travel time string (e.g., "1 hour 20 min") into seconds.
+     * @param duration The duration string to parse.
+     * @return The duration in seconds.
+     */
     private fun parseDurationToSeconds(duration: String): Int {
         var totalSeconds = 0
 
@@ -684,6 +735,11 @@ class MapFragment : AppCompatActivity(), OnMapReadyCallback, TextToSpeech.OnInit
     }
 }
 
+/**
+ * Checks if the user's current location is within the coordinates of Beer Sheva (or Kiryat Gat).
+ * @param location The user's current location.
+ * @return True if the user is in Beer Sheva (or Kiryat Gat), false otherwise.
+ */
 private fun isUserInBeerSheva(location: Location?): Boolean {
     if (location == null) return false
     val lat = location.latitude

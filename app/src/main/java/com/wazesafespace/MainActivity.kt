@@ -43,6 +43,11 @@ class MainActivity : AppCompatActivity() {
     lateinit var binding: ActivityMain2Binding
     private lateinit var alertReceiver: BroadcastReceiver
     private var currentScreen: CurrentScreen = CurrentScreen.Home
+
+    /**
+     * Requests notification permission from the user.
+     * Only needed for Android API 33 and above.
+     */
     private fun requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {  // API 33
             if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
@@ -53,17 +58,23 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-
     companion object {
         var showTipDialog = false
     }
 
-
+    /**
+     * Starts the foreground service for location tracking and alert notifications.
+     * Logs the start of the service.
+     */
     private fun startForegroundService() {
         startForegroundService(Intent(this, MyForegroundService::class.java))
         Log.d("MainActivity", "startForegroundService called")
     }
 
+    /**
+     * Displays a dialog asking the user for permission to run the app in the background.
+     * If approved, starts the foreground service and saves the confirmation in SharedPreferences.
+     */
     private fun showBackgroundRunDialog() {
         Log.d("showBackgroundRunDialog", "showBackgroundRunDialog")
         AlertDialog.Builder(this)
@@ -86,7 +97,12 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-
+    /**
+     * Handles menu item selection and navigates to the corresponding fragment.
+     * Logs out the user if the logout option is selected.
+     * @param item The selected menu item.
+     * @return True if the selected item action was handled, false otherwise.
+     */
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         findViewById<FragmentContainerView>(R.id.fragmentContainerMap).visibility = View.GONE
 
@@ -135,7 +151,11 @@ class MainActivity : AppCompatActivity() {
         return super.onOptionsItemSelected(item)
     }
 
-
+    /**
+     * Manually finds a shelter based on a provided address.
+     * If no address is provided, the current location will be used.
+     * @param fromManualAddress The manually entered address (optional).
+     */
     fun findShelterManually(fromManualAddress: String? = null) {
         val intent = Intent(this, MapFragment::class.java)
         val gson = Gson()
@@ -150,7 +170,11 @@ class MainActivity : AppCompatActivity() {
         )
         startActivity(intent)
     }
-
+    /**
+     * Initializes the activity, sets up the UI binding, and checks for permissions.
+     * Also handles showing the initial tip dialog and requesting necessary permissions.
+     * @param savedInstanceState The saved instance state (if any).
+     */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMain2Binding.inflate(layoutInflater)
@@ -223,6 +247,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Requests permission to run a foreground service.
+     * If the user has already approved background running, starts the service if not already running.
+     * Otherwise, shows the dialog to request permission.
+     */
     fun requestForegroundService() {
         val sharedPreferences = getSharedPreferences("app_preferences", MODE_PRIVATE)
         val isBackgroundApproved = sharedPreferences.getBoolean("isBackgroundApproved", false)
@@ -242,6 +271,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Replaces the current fragment with a new one.
+     * Updates the home screen status based on the fragment.
+     * @param fragment The fragment to replace the current one with.
+     */
     private fun replaceFragment(fragment: Fragment) {
         val fragmentManager = supportFragmentManager
         val fragmentTransaction = fragmentManager.beginTransaction()
@@ -251,6 +285,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     var isInHome = true
+
+    /**
+     * Handles the result of permission requests for location, notifications, and foreground service.
+     * If permissions are granted, the corresponding actions are taken (e.g., starting the foreground service).
+     * @param requestCode The request code for identifying the permission.
+     * @param permissions The array of requested permissions.
+     * @param grantResults The results of the permission requests.
+     */
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
@@ -293,6 +335,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Handles the back button press.
+     * If the user is not on the home screen, navigates back to the home screen.
+     * Otherwise, performs the default back button behavior.
+     */
     override fun onBackPressed() {
         if (!isInHome) {
             currentScreen = CurrentScreen.Home
