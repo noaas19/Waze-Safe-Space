@@ -8,7 +8,6 @@
     android:background="@drawable/blue_background"
     android:gravity="center">
 
-    <!-- לוגו -->
     <ImageView
         android:translationY="-64dp"
         android:id="@+id/imageViewLogo"

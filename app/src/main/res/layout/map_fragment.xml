@@ -7,21 +7,20 @@
     tools:context=".MapFragment">
 
 
-
     <LinearLayout
         android:padding="8dp"
-        android:layoutDirection="rtl"
         android:orientation="horizontal"
         app:layout_constraintTop_toTopOf="parent"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:translationZ="10dp">
 
         <ImageView
             android:id="@+id/menuBtn"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_gravity="start"
-            android:src="@drawable/baseline_menu_24"/>
+            android:src="@drawable/baseline_menu_24" />
     </LinearLayout>
 
     <!-- Map fragment -->
@@ -86,7 +85,7 @@
             android:orientation="vertical"
             android:gravity="center"
             android:layout_weight="1"
-            android:id="@+id/btnShowInstructions"
+
             android:layout_width="wrap_content"
             android:layout_height="match_parent">
 

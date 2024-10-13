@@ -8,7 +8,6 @@
     tools:context=".Home">
 
 
-
     <LinearLayout
         android:gravity="center"
         app:layout_constraintTop_toTopOf="parent"
@@ -19,7 +18,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
-        <!-- לוגו -->
+
         <ImageView
             android:layout_marginBottom="120dp"
             android:id="@+id/imageViewLogo"
@@ -28,7 +27,7 @@
             android:layout_centerHorizontal="true"
             android:src="@drawable/logo" />
 
-        <!-- כפתור למציאת מרחב מוגן -->
+
         <Button
             android:id="@+id/buttonFindSafeSpace"
             android:backgroundTint="@color/black"
@@ -45,10 +44,4 @@
 
     </LinearLayout>
 
-
-    <!-- כפתור להזנת מיקום ידנית -->
-
-    <!-- כפתור להוספת מקלט חדש -->
-
-    <!-- כפתור HOME (נשנה את השם מאוחר יותר) -->
 </androidx.constraintlayout.widget.ConstraintLayout>
