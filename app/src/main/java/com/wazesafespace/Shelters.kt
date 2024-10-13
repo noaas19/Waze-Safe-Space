@@ -17,7 +17,7 @@ class Shelters : Fragment(R.layout.clean_fragment), SavedSheltersRvAdapter.Saved
 
 
     private var _binding: SheltersBinding? = null
-    private val binding : SheltersBinding get() = _binding!!
+    private val binding: SheltersBinding get() = _binding!!
 
 
     private lateinit var rvAdapter: SavedSheltersRvAdapter
@@ -41,9 +41,8 @@ class Shelters : Fragment(R.layout.clean_fragment), SavedSheltersRvAdapter.Saved
                     rvAdapter = SavedSheltersRvAdapter(shelters, this@Shelters)
                     binding.rvShelters.adapter = rvAdapter
                 }
-            }
-            catch(e: Exception) {
-                Log.d("Shelters exception",e.message.toString())
+            } catch (e: Exception) {
+                Log.d("Shelters exception", e.message.toString())
             }
         }
     }

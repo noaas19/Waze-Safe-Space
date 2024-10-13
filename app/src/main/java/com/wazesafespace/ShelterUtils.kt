@@ -19,12 +19,12 @@ import java.util.Locale
 import kotlin.jvm.Throws
 
 data class Shelter(
-                    val id: String = "",
-                    val name: String = "",
-                   var reports: Int = 0,
-                   val lat: Double = 0.0,
-                   val lon: Double = 0.0,
-                   var hasStairs: Boolean = false
+    val id: String = "",
+    val name: String = "",
+    var reports: Int = 0,
+    val lat: Double = 0.0,
+    val lon: Double = 0.0,
+    var hasStairs: Boolean = false
 ) {
     suspend fun toSaved(context: Context) = withContext(Dispatchers.IO) {
         val address = ShelterUtils.shelterCoordinatesToAddress(
@@ -46,67 +46,70 @@ data class Shelter(
 }
 
 data class SavedShelter(
-                   var id: String = "",
-                   var shetlerId: String = "",
-                   var reportAdded: Boolean = false,
-                   var name: String = "",
-                   var lat: Double = 0.0,
-                   var lon: Double = 0.0,
-                   var saveDate: Long = System.currentTimeMillis(),
-                   var address: String = "",
-                   var hasStairs: Boolean = false
+    var id: String = "",
+    var shetlerId: String = "",
+    var reportAdded: Boolean = false,
+    var name: String = "",
+    var lat: Double = 0.0,
+    var lon: Double = 0.0,
+    var saveDate: Long = System.currentTimeMillis(),
+    var address: String = "",
+    var hasStairs: Boolean = false
 )
 
 object ShelterUtils {
 
-
     @Throws(Exception::class)
     suspend fun shelterCoordinatesToAddress(
-        lat : Double,
+        lat: Double,
         lon: Double,
-        context : Context)
-    = withContext(Dispatchers.IO) {
+        context: Context
+    ) = withContext(Dispatchers.IO) {
         val g = Geocoder(context, Locale.getDefault())
 
-        val results = g.getFromLocation(lat, lon, 1 ) ?:
-            throw Exception("Could not find address by coordinates")
+        val results = g.getFromLocation(lat, lon, 1)
+            ?: throw Exception("Could not find address by coordinates")
 
-        if(results.isNotEmpty()) {
+        if (results.isNotEmpty()) {
             return@withContext results[0].getAddressLine(0)
-        }
-        else {
+        } else {
             throw Exception("Could not find address by coordinates")
         }
     }
 
 
-
-      fun addShelterReport(savedShelter: SavedShelter,
-                           hasStairs: Boolean,
-                           callback: (SavedShelter) -> Unit) {
-         if(!hasStairs)  return
+    fun addShelterReport(
+        savedShelter: SavedShelter,
+        hasStairs: Boolean,
+        callback: (SavedShelter) -> Unit
+    ) {
+        if (!hasStairs) return
 
         FirebaseDatabase.getInstance()
             .getReference("shelters")
             .get()
-            .addOnSuccessListener {  shelterDoc ->
+            .addOnSuccessListener { shelterDoc ->
 
                 val shelters = shelterDoc.children.mapNotNull {
                     val doc = it.getValue(Shelter::class.java) ?: return@mapNotNull null
                     Pair(doc, it)
                 }
-                val shelter = shelters.firstOrNull { it.first.id == savedShelter.shetlerId } ?: return@addOnSuccessListener
-                if(shelter.first.reports >= 1 && !shelter.first.hasStairs) {
+                val shelter = shelters.firstOrNull { it.first.id == savedShelter.shetlerId }
+                    ?: return@addOnSuccessListener
+                if (shelter.first.reports >= 1 && !shelter.first.hasStairs) {
                     Log.d("addShelterReport", "shelter.reports >= 1 && !shelter.hasStairs")
-                    shelter.second.ref.updateChildren(mapOf("hasStairs" to true, "reports" to shelter.first.reports + 1))
-                }
-                else {
+                    shelter.second.ref.updateChildren(
+                        mapOf(
+                            "hasStairs" to true,
+                            "reports" to shelter.first.reports + 1
+                        )
+                    )
+                } else {
                     shelter.second.ref.updateChildren(mapOf("reports" to shelter.first.reports + 1))
                 }
-                val hasStairsNew = if(shelter.first.reports  == 1) {
+                val hasStairsNew = if (shelter.first.reports == 1) {
                     true
-                }
-                else {
+                } else {
                     false
                 }
 
@@ -136,7 +139,8 @@ object ShelterUtils {
             .child("shelters")
             .get()
             .addOnSuccessListener {
-                val shelters = it.children.mapNotNull { shelterDoc -> shelterDoc.getValue(SavedShelter::class.java) }
+                val shelters =
+                    it.children.mapNotNull { shelterDoc -> shelterDoc.getValue(SavedShelter::class.java) }
                 deferred.complete(shelters)
             }
             .addOnFailureListener {
@@ -146,7 +150,7 @@ object ShelterUtils {
 
     }
 
-    suspend fun saveShelter(context: Context, shelter:Shelter) = withContext(Dispatchers.IO) {
+    suspend fun saveShelter(context: Context, shelter: Shelter) = withContext(Dispatchers.IO) {
         val deferred = CompletableDeferred<SavedShelter>()
         val savedShelter = shelter.toSaved(context)
 
@@ -167,7 +171,6 @@ object ShelterUtils {
                 deferred.completeExceptionally(it)
             }
 
-
         deferred.await()
     }
 
@@ -187,7 +190,7 @@ object ShelterUtils {
                 val name = obj.getString("name")
                 val lat = obj.getDouble("lat")
                 val lon = obj.getDouble("lon")
-                shelters.add(Shelter(id="",reports=0,name=name, lat=lat, lon=lon))
+                shelters.add(Shelter(id = "", reports = 0, name = name, lat = lat, lon = lon))
             }
         } catch (e: IOException) {
             e.printStackTrace()

@@ -8,7 +8,7 @@
     android:background="@drawable/blue_background"
     android:gravity="center">
 
-    <!-- לוגו -->
+
     <ImageView
         android:translationY="-64dp"
         android:layout_marginBottom="20dp"
@@ -21,7 +21,6 @@
     <LinearLayout
 
         android:translationY="-64dp"
-
         android:layout_width="400dp"
         android:layout_height="wrap_content"
         android:background="@drawable/transparent_rectangle"
@@ -36,7 +35,6 @@
             android:hint="Email"
             app:boxBackgroundColor="@color/white"
             app:boxCornerRadiusBottomEnd="32dp"
-
             app:boxCornerRadiusBottomStart="32dp"
             app:boxCornerRadiusTopEnd="32dp"
             app:boxCornerRadiusTopStart="32dp">
@@ -60,14 +58,12 @@
             android:hint="Password"
             app:boxBackgroundColor="@color/white"
             app:boxCornerRadiusBottomEnd="32dp"
-
             app:boxCornerRadiusBottomStart="32dp"
             app:boxCornerRadiusTopEnd="32dp"
             app:boxCornerRadiusTopStart="32dp">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/editTextPassword"
-
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:drawableStart="@drawable/baseline_key_24"

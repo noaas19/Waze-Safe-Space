@@ -27,11 +27,11 @@ class Profile : Fragment() {
     ): View? {
         val view = inflater.inflate(R.layout.profile, container, false)
 
-        // אתחול Firebase
+        // init Firebase
         auth = FirebaseAuth.getInstance()
         firestore = FirebaseFirestore.getInstance()
 
-        // איתור רכיבי ממשק
+        // Locating interface elements
         firstNameEditText = view.findViewById(R.id.editTextFirstName)
         lastNameEditText = view.findViewById(R.id.editTextLastName)
         emailEditText = view.findViewById(R.id.editTextEmail)
@@ -39,11 +39,8 @@ class Profile : Fragment() {
         accessibilitySpinner = view.findViewById(R.id.spinnerAccessibility)
         saveButton = view.findViewById(R.id.buttonSave)
 
-
-        // טוען את המידע הקיים של המשתמש
         loadUserData()
 
-        // מאזין לשמירת נתונים
         saveButton.setOnClickListener {
             saveUserData()
         }
@@ -58,16 +55,16 @@ class Profile : Fragment() {
             firestore.collection("users").document(userId).get()
                 .addOnSuccessListener { document ->
                     if (document != null && document.exists()) {
-                        // הטעינת נתונים לממשק
+                        // Loading data to the interface
                         firstNameEditText.setText(document.getString("firstName"))
                         lastNameEditText.setText(document.getString("lastName"))
                         emailEditText.setText(document.getString("email"))
                         birthYearEditText.setText(document.getString("birthYear"))
 
-                        // הגדרת הספינר לפי הערך הנוכחי
-
                         val accessibility = document.getString("accessibility")
-                        val accessibilityIndex = resources.getStringArray(R.array.accessibility_options).indexOf(accessibility)
+                        val accessibilityIndex =
+                            resources.getStringArray(R.array.accessibility_options)
+                                .indexOf(accessibility)
                         accessibilitySpinner.selectItemByIndex(accessibilityIndex)
                     }
                 }
@@ -89,10 +86,15 @@ class Profile : Fragment() {
                 .document(userId)
                 .set(user)
                 .addOnSuccessListener {
-                    Toast.makeText(requireContext(), "השינויים נשמרו בהצלחה!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "השינויים נשמרו בהצלחה!", Toast.LENGTH_SHORT)
+                        .show()
                 }
                 .addOnFailureListener { e ->
-                    Toast.makeText(requireContext(), "שגיאה בשמירת הנתונים: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        requireContext(),
+                        "שגיאה בשמירת הנתונים: ${e.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
         }
     }

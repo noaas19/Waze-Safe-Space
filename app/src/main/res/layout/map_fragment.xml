@@ -39,10 +39,9 @@
         app:layout_constraintVertical_bias="0.0" />
 
     <!-- TextView to display the estimated travel time -->
+    <!-- TextView to display Voice Instructions -->
+    <!-- TextView to display ShowInstructions -->
 
-    <!-- כפתור הצג הנחיות-->
-
-    <!-- כפתור הנחיה קולית-->
 
     <LinearLayout
         android:background="@drawable/rounded_top"
@@ -97,7 +96,7 @@
 
                 android:layout_marginBottom="16dp"
                 android:background="?attr/selectableItemBackground"
-                android:contentDescription="הנחיה קולית"
+                android:contentDescription="הנחיה ויזואלית"
                 android:padding="8dp"
                 android:scaleType="centerInside"
                 android:src="@drawable/instructions"
@@ -125,10 +124,9 @@
             <ImageButton
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-
                 android:layout_marginBottom="16dp"
                 android:background="?attr/selectableItemBackground"
-                android:contentDescription="הנחיה קולית"
+                android:contentDescription="זמן נסיעה משוער"
                 android:padding="8dp"
                 android:scaleType="centerInside"
                 android:src="@drawable/baseline_access_time_24"
@@ -146,7 +144,6 @@
 
         </LinearLayout>
     </LinearLayout>
-
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

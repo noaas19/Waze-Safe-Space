@@ -26,7 +26,7 @@ class Login : Fragment() {
         // Inflate the layout for this fragment
         val view = inflater.inflate(R.layout.login, container, false)
 
-        // אתחול Firebase Auth ו-Firestore
+        // init Firebase Auth & Firestore
         auth = FirebaseAuth.getInstance()
         firestore = FirebaseFirestore.getInstance()
         val emailEditText = view.findViewById<EditText>(R.id.emailEditText)
@@ -49,7 +49,6 @@ class Login : Fragment() {
                 auth.signInWithEmailAndPassword(email, password)
                     .addOnCompleteListener { task ->
                         if (task.isSuccessful) {
-                            // התחברות הצליחה, ננווט לעמוד הפרופיל
                             //findNavController().navigate(R.id.action_menuLogin_to_menuProfile)
                         } else {
 
@@ -60,7 +59,6 @@ class Login : Fragment() {
                             else {
                                 task.exception?.message
                             }
-                            // שגיאה בהתחברות
                             errorTextView.text = "Authentication failed: ${message}"
                             errorTextView.visibility = TextView.VISIBLE
                             errorCard.visibility = TextView.VISIBLE

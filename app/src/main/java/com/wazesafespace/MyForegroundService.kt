@@ -1,4 +1,5 @@
 package com.wazesafespace
+
 import com.wazesafespace.MainActivity
 import com.wazesafespace.MapFragment
 import com.wazesafespace.R
@@ -27,7 +28,6 @@ class MyForegroundService : Service() {
 
     private lateinit var database: DatabaseReference
 
-
     companion object {
         var isServiceRunning = false
     }
@@ -55,7 +55,6 @@ class MyForegroundService : Service() {
 
                     if (beerShevaAlert) {
                         Log.d(TAG, "Alert for Beer Sheva found")
-                        //כאן אמורים לשלוח התראות וכשמשתמש ילחץ על התראה -צריך להפעיל פונקציה FindShelterHandler
                         sendBeerShevaAlertNotification()
 
                     } else {
@@ -69,21 +68,18 @@ class MyForegroundService : Service() {
             }
         })
 
-        // יצירת ערוץ ההתראה (Notification Channel)
         createNotificationChannel()
-
 
         return START_STICKY
     }
 
     override fun onCreate() {
         super.onCreate()
-        // יצירת ההתראה
 
         val notification = NotificationCompat.Builder(this, "CHANNEL_ID")
             .setContentTitle("Service Running")
             .setContentText("Your app is running in the background")
-            .setSmallIcon(R.drawable.ic_launcher_foreground)  //לייבא אייקון מתאים
+            .setSmallIcon(R.drawable.ic_launcher_foreground)  //Change to a suitable icon
             .setOngoing(true)
             .build()
 
@@ -91,7 +87,7 @@ class MyForegroundService : Service() {
         Log.d("MyForegroundService", "Notification created and service started")
     }
 
-    // פונקציה ליצירת ערוץ ההתראה
+
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
@@ -103,21 +99,27 @@ class MyForegroundService : Service() {
             manager.createNotificationChannel(channel)
         }
     }
+
     private fun sendBeerShevaAlertNotification() {
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         val channelId = "CHANNEL_ID"
         val gson = Gson()
 
-        // כוונה שתיפתח כאשר המשתמש ילחץ על ההתראה
+        // An intent that will open when the user clicks the alert
         val intent = Intent(this, MapFragment::class.java).apply {
-            putExtra("action", "guideUserByLocation") // מעבירים פרמטר שמעיד על הפעולה
-            putExtra("event", gson.toJson(ShelterEvent(
-                type="ShelterNotification",
-                currentLocation = false
-            )))
+            putExtra("action", "guideUserByLocation")
+            putExtra(
+                "event", gson.toJson(
+                    ShelterEvent(
+                        type = "ShelterNotification",
+                        currentLocation = false
+                    )
+                )
+            )
         }
-        // PendingIntent עם FLAG_UPDATE_CURRENT כדי לוודא שהכוונה מתעדכנת
+        // PendingIntent with FLAG_UPDATE_CURRENT to make sure the intent is being updated
         val pendingIntent = PendingIntent.getActivity(
             this,
             0,
@@ -125,20 +127,17 @@ class MyForegroundService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // בניית ההתראה
         val notification = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle("התראה לבאר שבע")
-            .setContentText("התקבלה התראה לבאר שבע, לחץ כאן לקבלת הנחיות.")
+            .setContentText("התראה בבאר שבע,לחץ כאן לקבלת הנחיות.")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pendingIntent)
-            .setAutoCancel(true) // ההתראה תעלם אחרי לחיצה
+            .setAutoCancel(true)
             .build()
 
-        // הצגת ההתראה
         notificationManager.notify(2, notification)
     }
-
 
     override fun onDestroy() {
         super.onDestroy()

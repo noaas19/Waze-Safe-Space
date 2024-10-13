@@ -10,7 +10,7 @@ class Home : Fragment(R.layout.activity_home) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // הגדרת לחיצה על הכפתור מתוך הפרגמנט
+
         view.findViewById<Button>(R.id.buttonFindSafeSpace)
             .setOnClickListener {
                 val activity = requireActivity() as? MainActivity ?: return@setOnClickListener

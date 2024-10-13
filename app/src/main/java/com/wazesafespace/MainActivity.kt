@@ -28,11 +28,11 @@ import java.util.UUID
 
 sealed class CurrentScreen {
     data object Home : CurrentScreen()
-    data object Register: CurrentScreen()
+    data object Register : CurrentScreen()
     data object Login : CurrentScreen()
     data object Map : CurrentScreen()
-    data object Profile: CurrentScreen()
-    data object MyShelters: CurrentScreen()
+    data object Profile : CurrentScreen()
+    data object MyShelters : CurrentScreen()
 }
 
 class MainActivity : AppCompatActivity() {
@@ -42,11 +42,14 @@ class MainActivity : AppCompatActivity() {
 
     lateinit var binding: ActivityMain2Binding
     private lateinit var alertReceiver: BroadcastReceiver
-    private var currentScreen : CurrentScreen = CurrentScreen.Home
+    private var currentScreen: CurrentScreen = CurrentScreen.Home
     private fun requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {  // API 33
             if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), NOTIFICATION_PERMISSION_CODE)
+                requestPermissions(
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                    NOTIFICATION_PERMISSION_CODE
+                )
             }
         }
     }
@@ -58,7 +61,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun startForegroundService() {
         startForegroundService(Intent(this, MyForegroundService::class.java))
-        Log.d("MainActivity","startForegroundService called")
+        Log.d("MainActivity", "startForegroundService called")
     }
 
     private fun showBackgroundRunDialog() {
@@ -67,10 +70,10 @@ class MainActivity : AppCompatActivity() {
             .setTitle("הפעלת ריצה ברקע")
             .setMessage("האפליקציה תרוץ ברקע כדי להמשיך לעקוב אחרי המיקום שלך ולוודא שאתה מקבל את כל ההתרעות בזמן אמת.")
             .setPositiveButton("אישור") { _, _ ->
-                // הפעלת השירות לאחר שהמשתמש נתן אישור
+                // Activation of the service after the user has given permission
                 startForegroundService()
 
-                // שמירת האישור ב-SharedPreferences כדי שלא נבקש שוב
+                // Saving the confirmation in SharedPreferences so we don't ask again
                 val sharedPreferences = getSharedPreferences("app_preferences", MODE_PRIVATE)
                 with(sharedPreferences.edit()) {
                     putBoolean("isBackgroundApproved", true)
@@ -79,33 +82,33 @@ class MainActivity : AppCompatActivity() {
             }
             .setNegativeButton("ביטול") { dialog, _ ->
                 dialog.dismiss()
-                // כאן אפשר להפסיק כל פעולה נוספת אם המשתמש סירב
             }
             .show()
     }
 
 
-
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         findViewById<FragmentContainerView>(R.id.fragmentContainerMap).visibility = View.GONE
 
-        when(item.itemId) {
+        when (item.itemId) {
             R.id.menuHome -> {
-                if(currentScreen is CurrentScreen.Home) {
+                if (currentScreen is CurrentScreen.Home) {
                     return true
                 }
                 currentScreen = CurrentScreen.Home
 
                 replaceFragment(Home())
             }
+
             R.id.menuShelters -> {
-                if(currentScreen is CurrentScreen.MyShelters) {
+                if (currentScreen is CurrentScreen.MyShelters) {
                     return true
                 }
                 currentScreen = CurrentScreen.MyShelters
                 replaceFragment(Shelters())
             }
-            R.id.menuLogout-> {
+
+            R.id.menuLogout -> {
 
                 AlertDialog
                     .Builder(this)
@@ -116,11 +119,12 @@ class MainActivity : AppCompatActivity() {
                         finish()
                         startActivity(Intent(this, AuthActivity::class.java))
                     }
-                    .setNegativeButton("Cancel",null)
+                    .setNegativeButton("Cancel", null)
                     .show()
             }
+
             R.id.menuProfile -> {
-                if(currentScreen is CurrentScreen.Profile) {
+                if (currentScreen is CurrentScreen.Profile) {
                     return true
                 }
                 currentScreen = CurrentScreen.Profile
@@ -132,23 +136,27 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-
     fun findShelterManually(fromManualAddress: String? = null) {
         val intent = Intent(this, MapFragment::class.java)
         val gson = Gson()
-        intent.putExtra("event", gson.toJson(ShelterEvent(
-            type="ShelterManually",
-            address = fromManualAddress,
-            currentLocation = true
-        )))
+        intent.putExtra(
+            "event", gson.toJson(
+                ShelterEvent(
+                    type = "ShelterManually",
+                    address = fromManualAddress,
+                    currentLocation = true
+                )
+            )
+        )
         startActivity(intent)
     }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMain2Binding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        if(showTipDialog) {
+        if (showTipDialog) {
             AlertDialog.Builder(this)
                 .setTitle("Waze safe space")
                 .setMessage("על מנת ליהנות מאפליקציה מותאמת אישית מומלץ לעדכן פרופיל")
@@ -166,7 +174,7 @@ class MainActivity : AppCompatActivity() {
             popUpMenu.setOnMenuItemClickListener(::onOptionsItemSelected)
             popUpMenu.show()
         }
-        // טוענים את הפרגמנט הראשוני עם הלוגו והכפתורים
+
         replaceFragment(Home())
 
         requestNotificationPermission()
@@ -175,20 +183,22 @@ class MainActivity : AppCompatActivity() {
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
-            ||ActivityCompat.checkSelfPermission(
+            || ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_COARSE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
             || ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.FOREGROUND_SERVICE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED) {
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
             ActivityCompat.requestPermissions(
                 this,
                 arrayOf(
                     Manifest.permission.FOREGROUND_SERVICE_LOCATION,
                     Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION),
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ),
                 FINE_PERMISSION_CODE
             )
         }
@@ -196,33 +206,31 @@ class MainActivity : AppCompatActivity() {
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.FOREGROUND_SERVICE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED) {
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 ActivityCompat.requestPermissions(
                     this,
                     arrayOf(
-                        Manifest.permission.FOREGROUND_SERVICE_LOCATION),
-                        FORGROUND_SERVICE_PERMISSION
+                        Manifest.permission.FOREGROUND_SERVICE_LOCATION
+                    ),
+                    FORGROUND_SERVICE_PERMISSION
                 )
             }
             return
-        }
-        else {
+        } else {
             requestForegroundService()
         }
-
-
-
     }
 
     fun requestForegroundService() {
         val sharedPreferences = getSharedPreferences("app_preferences", MODE_PRIVATE)
         val isBackgroundApproved = sharedPreferences.getBoolean("isBackgroundApproved", false)
 
-        // בדיקת האם המשתמש אישר כבר את הריצה ברקע
+        // Checking if the user has already approved the running in the background
         if (isBackgroundApproved) {
-            Log.d("isBackgroundApproved","isBackgroundApproved")
-            // נוודא שהשירות לא פועל ואז נפעיל אותו
+            Log.d("isBackgroundApproved", "isBackgroundApproved")
+
             if (!MyForegroundService.isServiceRunning) {
                 startForegroundService()
                 Log.d("MapFragment", "Starting Foreground Service")
@@ -230,7 +238,6 @@ class MainActivity : AppCompatActivity() {
                 Log.d("MapFragment", "Foreground service is already running")
             }
         } else {
-            // המשתמש לא אישר ריצה ברקע, מבקשים אישור
             showBackgroundRunDialog()
         }
     }
@@ -252,7 +259,7 @@ class MainActivity : AppCompatActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
         when (requestCode) {
-    FINE_PERMISSION_CODE -> {
+            FINE_PERMISSION_CODE -> {
 
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     requestForegroundService()
@@ -266,12 +273,11 @@ class MainActivity : AppCompatActivity() {
 //                    ).show()
                 }
             }
+
             NOTIFICATION_PERMISSION_CODE -> {
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    // הרשאת התראות ניתנה
                     Log.d("NotificationPermission", "Notification permission granted.")
                 } else {
-                    // הרשאת התראות לא ניתנה
                     Log.d("NotificationPermission", "Notification permission is denied.")
                     Toast.makeText(
                         this,
@@ -280,6 +286,7 @@ class MainActivity : AppCompatActivity() {
                     ).show()
                 }
             }
+
             FORGROUND_SERVICE_PERMISSION -> {
                 requestForegroundService()
             }
@@ -287,7 +294,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
-        if(!isInHome) {
+        if (!isInHome) {
             currentScreen = CurrentScreen.Home
             replaceFragment(Home())
         } else {
