@@ -338,8 +338,8 @@ class MapFragment : AppCompatActivity(), OnMapReadyCallback, TextToSpeech.OnInit
                         if (travelTimeInSeconds > limitedShieldingTime) {
 
                             AlertDialog.Builder(this)
-                                .setTitle("אין מסלול בטוח בזמן ההתמגנות   ")
-                                .setMessage("מומלץ להיכנס לבניין סמוך. אם אין בניין בסביבה,שכב על הרצפה עם ידיים על הראש.")
+                                .setTitle("אין מסלול בטוח בזמן ההתמגנות          ")
+                                .setMessage("מומלץ להיכנס לבניין סמוך.\n אם אין בניין בסביבה,\nשכב על הרצפה עם ידיים על הראש.")
                                 .setPositiveButton("אישור") { dialog, _ ->
                                     dialog.dismiss()
                                 }
