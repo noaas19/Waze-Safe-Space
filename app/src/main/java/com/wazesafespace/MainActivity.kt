@@ -38,15 +38,21 @@ sealed class CurrentScreen {
 class MainActivity : AppCompatActivity() {
     private val NOTIFICATION_PERMISSION_CODE = 1001
     private val FINE_PERMISSION_CODE = 1
+    private val FORGROUND_SERVICE_PERMISSION = 2
+
     lateinit var binding: ActivityMain2Binding
     private lateinit var alertReceiver: BroadcastReceiver
     private var currentScreen : CurrentScreen = CurrentScreen.Home
     private fun requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {  // API 33
-            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), NOTIFICATION_PERMISSION_CODE)
+            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), NOTIFICATION_PERMISSION_CODE)
             }
         }
+    }
+
+    companion object {
+        var showTipDialog = false
     }
 
 
@@ -142,6 +148,18 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMain2Binding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        if(showTipDialog) {
+            AlertDialog.Builder(this)
+                .setTitle("Waze safe space")
+                .setMessage("על מנת ליהנות מאפליקציה מותאמת אישית מומלץ לעדכן פרופיל")
+                .setPositiveButton("עדכן פרופיל") { _, _ ->
+                    replaceFragment(Profile())
+                    currentScreen = CurrentScreen.Profile
+                }
+                .setNegativeButton("סגור", null)
+                .show()
+        }
+
         binding.menuBtn.setOnClickListener {
             val popUpMenu = PopupMenu(this@MainActivity, it)
             popUpMenu.inflate(R.menu.menu_nav)
@@ -157,30 +175,36 @@ class MainActivity : AppCompatActivity() {
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
-        ) {
+            ||ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+            || ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.FOREGROUND_SERVICE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(
                 this,
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                arrayOf(
+                    Manifest.permission.FOREGROUND_SERVICE_LOCATION,
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION),
                 FINE_PERMISSION_CODE
             )
         }
 
         if (ActivityCompat.checkSelfPermission(
                 this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-            ||ActivityCompat.checkSelfPermission(
-                this,
                 Manifest.permission.FOREGROUND_SERVICE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(
-                    Manifest.permission.FOREGROUND_SERVICE_LOCATION,
-                    Manifest.permission.ACCESS_FINE_LOCATION),
-                FINE_PERMISSION_CODE
-            )
+            ) != PackageManager.PERMISSION_GRANTED) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(
+                        Manifest.permission.FOREGROUND_SERVICE_LOCATION),
+                        FORGROUND_SERVICE_PERMISSION
+                )
+            }
             return
         }
         else {
@@ -255,6 +279,9 @@ class MainActivity : AppCompatActivity() {
                         Toast.LENGTH_SHORT
                     ).show()
                 }
+            }
+            FORGROUND_SERVICE_PERMISSION -> {
+                requestForegroundService()
             }
         }
     }

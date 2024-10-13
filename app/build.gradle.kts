@@ -56,6 +56,7 @@ dependencies {
     implementation("com.google.firebase:firebase-appcheck:17.0.1")
     implementation("com.google.firebase:firebase-appcheck-playintegrity:17.0.1")
     implementation ("com.google.firebase:firebase-firestore:24.7.0")
+    implementation("com.github.skydoves:powerspinner:1.2.7")
     implementation(libs.firebase.functions.ktx)
     implementation(libs.play.services.location)
     implementation(libs.firebase.firestore.ktx)
@@ -64,7 +65,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.navigation.fragment.ktx)
     implementation(libs.androidx.navigation.ui.ktx)
-
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

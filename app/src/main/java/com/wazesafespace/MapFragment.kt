@@ -18,6 +18,7 @@ import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.PopupMenu
 import android.widget.TextView
 import android.widget.Toast
@@ -571,10 +572,10 @@ class MapFragment : AppCompatActivity(), OnMapReadyCallback, TextToSpeech.OnInit
         val travelTimeInSeconds = parseDurationToSeconds(travelTimeText)
 
         // Update the TextView with the travel time
-        textViewTravelTime.text = "Estimated Travel Time: $travelTimeText"
+        textViewTravelTime.text = "$travelTimeText"
 
         // אתחול הכפתור להצגת ההנחיות
-        val btnShowInstructions = findViewById<Button>(R.id.btnShowInstructions)
+        val btnShowInstructions = findViewById<LinearLayout>(R.id.btnShowInstructions)
         val instructionsList = StringBuilder()  // יצירת מחרוזת להצגת כל ההנחיות
         val instructionsForSpeech = mutableListOf<String>()
 
@@ -722,11 +723,24 @@ private fun isUserInBeerSheva(location: Location?): Boolean {
     val lat = location.latitude
     val lon = location.longitude
 
-    // הגדרת תחום קואורדינטות של באר שבע מויקיפדיה
+    // תחום קואורדינטות של באר שבע
     val BEER_SHEVA_LAT_MIN = 31.174294
     val BEER_SHEVA_LAT_MAX = 31.332650
     val BEER_SHEVA_LON_MIN = 34.706400
     val BEER_SHEVA_LON_MAX = 34.869200
-    return lat >= BEER_SHEVA_LAT_MIN && lat <= BEER_SHEVA_LAT_MAX &&
+
+    // תחום קואורדינטות של קריית גת
+    val KIRYAT_GAT_LAT_MIN = 31.589500
+    val KIRYAT_GAT_LAT_MAX = 31.642800
+    val KIRYAT_GAT_LON_MIN = 34.738800
+    val KIRYAT_GAT_LON_MAX = 34.799400
+
+    // בדיקה אם המשתמש נמצא בבאר שבע או בקריית גת
+    val isInBeerSheva = lat >= BEER_SHEVA_LAT_MIN && lat <= BEER_SHEVA_LAT_MAX &&
             lon >= BEER_SHEVA_LON_MIN && lon <= BEER_SHEVA_LON_MAX
+
+    val isInKiryatGat = lat >= KIRYAT_GAT_LAT_MIN && lat <= KIRYAT_GAT_LAT_MAX &&
+            lon >= KIRYAT_GAT_LON_MIN && lon <= KIRYAT_GAT_LON_MAX
+
+    return isInBeerSheva || isInKiryatGat
 }

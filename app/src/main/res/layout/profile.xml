@@ -4,7 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:gravity="center"
-    android:background="@drawable/home_bg"
+    android:background="@drawable/bg2"
     android:padding="16dp">
 
     <ImageView
@@ -12,120 +12,136 @@
         android:layout_width="100dp"
         android:layout_height="100dp"
         android:src="@drawable/baseline_person_pin_24"/>
+
     <LinearLayout
-        android:gravity="center"
-        android:padding="32dp"
-        android:background="@drawable/transparent_rectangle"
-        android:layout_width="match_parent"
+        android:layout_width="400dp"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:background="@drawable/transparent_rectangle"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="32dp">
 
         <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="300dp"
+            android:layout_height="wrap_content"
+            app:boxBackgroundColor="@color/white"
             app:boxCornerRadiusBottomEnd="32dp"
-            app:hintEnabled="false"
             app:boxCornerRadiusBottomStart="32dp"
             app:boxCornerRadiusTopEnd="32dp"
             app:boxCornerRadiusTopStart="32dp"
-            app:boxBackgroundColor="@color/white"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            app:hintEnabled="false">
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:hint="שם פרטי"
-                    android:id="@+id/editTextFirstName"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                  />
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/editTextFirstName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="שם פרטי" />
         </com.google.android.material.textfield.TextInputLayout>
 
 
         <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="300dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            app:boxBackgroundColor="@color/white"
             app:boxCornerRadiusBottomEnd="32dp"
             app:boxCornerRadiusBottomStart="32dp"
             app:boxCornerRadiusTopEnd="32dp"
-            android:layout_marginTop="8dp"
-            app:boxCornerRadiusTopStart="32dp"
-            app:boxBackgroundColor="@color/white"
-            app:hintEnabled="false"
 
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            app:boxCornerRadiusTopStart="32dp"
+            app:hintEnabled="false">
 
             <com.google.android.material.textfield.TextInputEditText
-                android:hint="שם משפחה"
-
                 android:id="@+id/editTextLastName"
+
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                 />
+                android:hint="שם משפחה" />
 
         </com.google.android.material.textfield.TextInputLayout>
 
 
         <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="300dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            app:boxBackgroundColor="@color/white"
             app:boxCornerRadiusBottomEnd="32dp"
             app:boxCornerRadiusBottomStart="32dp"
+
             app:boxCornerRadiusTopEnd="32dp"
             app:boxCornerRadiusTopStart="32dp"
-            android:layout_marginTop="8dp"
-            app:hintEnabled="false"
+            app:hintEnabled="false">
 
-            app:boxBackgroundColor="@color/white"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
             <com.google.android.material.textfield.TextInputEditText
-                android:hint="מייל"
-
                 android:id="@+id/editTextEmail"
-                android:drawablePadding="16dp"
+
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="textEmailAddress"
-                />
+                android:drawablePadding="16dp"
+                android:hint="מייל"
+                android:inputType="textEmailAddress" />
         </com.google.android.material.textfield.TextInputLayout>
 
 
         <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="300dp"
+            android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
+            app:boxBackgroundColor="@color/white"
             app:boxCornerRadiusBottomEnd="32dp"
             app:boxCornerRadiusBottomStart="32dp"
+
             app:boxCornerRadiusTopEnd="32dp"
             app:boxCornerRadiusTopStart="32dp"
-            app:hintEnabled="false"
-
-            app:boxBackgroundColor="@color/white"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            app:hintEnabled="false">
 
             <com.google.android.material.textfield.TextInputEditText
-                android:hint="שנת לידה"
-
                 android:id="@+id/editTextBirthYear"
-                android:inputType="number"
-                android:drawablePadding="16dp"
+
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                />
+                android:drawablePadding="16dp"
+                android:hint="שנת לידה"
+                android:inputType="number" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <Spinner
-            android:padding="16dp"
-            android:layout_marginVertical="16dp"
+        <com.skydoves.powerspinner.PowerSpinnerView
             android:id="@+id/spinnerAccessibility"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+            android:layout_width="300dp"
+            android:layout_height="wrap_content"
+            android:layout_marginVertical="16dp"
+            android:background="@drawable/rounded_rect"
+            android:gravity="start|center"
+
+            android:hint="נגישות"
+            android:layoutDirection="rtl"
+            android:padding="16dp"
+            android:textColor="@color/black"
+            android:textColorHint="#3C3C3C"
+            app:spinner_item_array="@array/accessibility_options"
+            android:textSize="14.5sp"
+            app:spinner_arrow_gravity="end"
+            app:spinner_arrow_padding="8dp"
+            app:spinner_arrow_show="true"
+            app:spinner_arrow_tint="@color/black"
+            app:spinner_divider_color="@color/black"
+            app:spinner_divider_show="true"
+            app:spinner_divider_size="0.4dp"
+            app:spinner_item_height="55dp"
+            app:spinner_popup_animation="dropdown"
+            app:spinner_popup_background="@color/white"
+            app:spinner_popup_elevation="14dp" />
 
         <Button
-            android:backgroundTint="@color/black"
-            android:layout_marginHorizontal="64dp"
             android:id="@+id/buttonSave"
-            android:layout_width="match_parent"
+            android:layout_width="160dp"
             android:layout_height="wrap_content"
+            android:layout_marginHorizontal="64dp"
+            android:backgroundTint="@color/black"
             android:text="שמור" />
 
     </LinearLayout>
-
-
 
 
 </LinearLayout>

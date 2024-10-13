@@ -8,6 +8,7 @@ import android.widget.*
 import androidx.fragment.app.Fragment
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.skydoves.powerspinner.PowerSpinnerView
 
 class Profile : Fragment() {
 
@@ -17,7 +18,7 @@ class Profile : Fragment() {
     private lateinit var lastNameEditText: EditText
     private lateinit var emailEditText: EditText
     private lateinit var birthYearEditText: EditText
-    private lateinit var accessibilitySpinner: Spinner
+    private lateinit var accessibilitySpinner: PowerSpinnerView
     private lateinit var saveButton: Button
 
     override fun onCreateView(
@@ -38,8 +39,6 @@ class Profile : Fragment() {
         accessibilitySpinner = view.findViewById(R.id.spinnerAccessibility)
         saveButton = view.findViewById(R.id.buttonSave)
 
-        // אתחול ספינרים
-        initSpinners()
 
         // טוען את המידע הקיים של המשתמש
         loadUserData()
@@ -52,18 +51,6 @@ class Profile : Fragment() {
         return view
     }
 
-    private fun initSpinners() {
-        // ספינר רמת כושר
-
-        // ספינר נגישות
-        val accessibilityAdapter = ArrayAdapter.createFromResource(
-            requireContext(),
-            R.array.accessibility_options,
-            android.R.layout.simple_spinner_item
-        )
-        accessibilityAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        accessibilitySpinner.adapter = accessibilityAdapter
-    }
 
     private fun loadUserData() {
         val userId = auth.currentUser?.uid
@@ -81,7 +68,7 @@ class Profile : Fragment() {
 
                         val accessibility = document.getString("accessibility")
                         val accessibilityIndex = resources.getStringArray(R.array.accessibility_options).indexOf(accessibility)
-                        accessibilitySpinner.setSelection(accessibilityIndex)
+                        accessibilitySpinner.selectItemByIndex(accessibilityIndex)
                     }
                 }
         }
@@ -95,7 +82,7 @@ class Profile : Fragment() {
                 "lastName" to lastNameEditText.text.toString(),
                 "email" to emailEditText.text.toString(),
                 "birthYear" to birthYearEditText.text.toString(),
-                "accessibility" to accessibilitySpinner.selectedItem.toString()
+                "accessibility" to resources.getStringArray(R.array.accessibility_options)[accessibilitySpinner.selectedIndex]
             )
 
             firestore.collection("users")
