@@ -398,7 +398,7 @@ class MapFragment : AppCompatActivity(), OnMapReadyCallback, TextToSpeech.OnInit
                             origin = LatLng(currentLocation.latitude, currentLocation.longitude),
                             dest = LatLng(theAccessible.lat, theAccessible.lon)
                         ) { distanceFromAccessible ->
-                            val distanceFromInaccessibleWeighted = distanceFromInaccessible * 1.5
+                            val distanceFromInaccessibleWeighted = distanceFromInaccessible * 2
                             if (distanceFromInaccessibleWeighted < distanceFromAccessible) {
                                 callback.invoke(theUnAccessible)
                             } else {
@@ -716,19 +716,18 @@ class MapFragment : AppCompatActivity(), OnMapReadyCallback, TextToSpeech.OnInit
     private fun parseDurationToSeconds(duration: String): Int {
         var totalSeconds = 0
 
-        if (duration.contains("hour")) {
-            val hours = duration.substringBefore(" hour").toInt()
-            totalSeconds += hours * 3600
-        }
+        // Regex to find all numbers with their respective time units
+        val regex = Regex("(\\d+)\\s*(hour|hours|min|minutes|sec|seconds)")
 
-        if (duration.contains("min")) {
-            val minutes = duration.substringBefore(" min").toInt()
-            totalSeconds += minutes * 60
-        }
+        regex.findAll(duration).forEach { matchResult ->
+            val value = matchResult.groupValues[1].toInt() // Extract the numeric part
+            val unit = matchResult.groupValues[2] // Extract the unit part
 
-        if (duration.contains("sec")) {
-            val seconds = duration.substringBefore(" sec").toInt()
-            totalSeconds += seconds
+            when (unit) {
+                "hour", "hours" -> totalSeconds += value * 3600
+                "min", "minutes" -> totalSeconds += value * 60
+                "sec", "seconds" -> totalSeconds += value
+            }
         }
 
         return totalSeconds
